@@ -5,6 +5,7 @@ namespace jdavidbakr\MailTracker;
 use jdavidbakr\MailTracker\Model\SentEmail;
 use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
 use jdavidbakr\MailTracker\Events\EmailSentEvent;
+use jdavidbakr\MailTracker\Libraries\TinyMinify;
 use Event;
 
 class MailTracker implements \Swift_Events_SendListener {
@@ -135,6 +136,7 @@ class MailTracker implements \Swift_Events_SendListener {
                 $subject = $message->getSubject();
 
                 $original_content = $message->getBody();
+                $original_content = TinyMinify::html($original_content);
 
                 if ($message->getContentType() === 'text/html' ||
                     ($message->getContentType() === 'multipart/alternative' && $message->getBody()) ||

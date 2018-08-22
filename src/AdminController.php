@@ -50,8 +50,10 @@ class AdminController extends Controller
             $terms = explode(" ",$search);
             foreach($terms as $term) {
                 $query->where(function($q) use($term) {
-                    $q->where('sender','like','%'.$term.'%')
-                        ->orWhere('recipient','like','%'.$term.'%')
+                    $q->where('sender_name','like','%'.$term.'%')
+                        ->orWhere('sender_email','like','%'.$term.'%')
+                        ->orWhere('recipient_name','like','%'.$term.'%')
+                        ->orWhere('recipient_email','like','%'.$term.'%')
                         ->orWhere('subject','like','%'.$term.'%');
                 });
             }

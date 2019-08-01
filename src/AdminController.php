@@ -13,7 +13,6 @@ use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
 
 use Mail;
 
-
 class AdminController extends Controller
 {
     /**
@@ -21,7 +20,7 @@ class AdminController extends Controller
      */
     public function postSearch(Request $request)
     {
-        session(['mail-tracker-index-search'=>$request->search]);
+        session(['mail-tracker-index-search' => $request->search]);
         return redirect(route('mailTracker_Index'));
     }
 
@@ -30,7 +29,7 @@ class AdminController extends Controller
      */
     public function clearSearch()
     {
-        session(['mail-tracker-index-search'=>null]);
+        session(['mail-tracker-index-search' => null]);
         return redirect(route('mailTracker_Index'));
     }
 
@@ -41,7 +40,7 @@ class AdminController extends Controller
      */
     public function getIndex()
     {
-        session(['mail-tracker-index-page'=>request()->page]);
+        session(['mail-tracker-index-page' => request()->page]);
         $search = session('mail-tracker-index-search');
 
         $query = SentEmail::query();
@@ -58,7 +57,7 @@ class AdminController extends Controller
                 });
             }
         }
-        $query->orderBy('created_at','desc');
+        $query->orderBy('created_at', 'desc');
 
         $emails = $query->paginate(config('mail-tracker.emails-per-page'));
 
@@ -72,7 +71,7 @@ class AdminController extends Controller
      */
     public function getShowEmail($id)
     {
-        $email = SentEmail::where('id',$id)->first();
+        $email = SentEmail::where('id', $id)->first();
         return \View('emailTrakingViews::show')->with('email', $email);
     }
 
@@ -83,8 +82,8 @@ class AdminController extends Controller
      */
     public function getUrlDetail($id)
     {
-        $detalle = SentEmailUrlClicked::where('sent_email_id',$id)->get();
-        if(!$detalle) {
+        $detalle = SentEmailUrlClicked::where('sent_email_id', $id)->get();
+        if (!$detalle) {
             return back();
         }
         return \View('emailTrakingViews::url_detail')->with('details', $detalle);
@@ -98,7 +97,7 @@ class AdminController extends Controller
     public function getSMTPDetail($id)
     {
         $detalle = SentEmail::find($id);
-        if(!$detalle) {
+        if (!$detalle) {
             return back();
         }
         return \View('emailTrakingViews::smtp_detail')->with('details', $detalle);

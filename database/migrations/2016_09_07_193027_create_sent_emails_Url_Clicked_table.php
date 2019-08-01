@@ -18,7 +18,7 @@ class CreateSentEmailsUrlClickedTable extends Migration
             $table->integer('sent_email_id')->unsigned();
             //$table->foreign('sent_email_id')->references('id')->on('sent_emails')->onDelete('cascade');
             $table->text('url')->nullable();
-            $table->char('hash',32);
+            $table->char('hash', 32);
             $table->integer('clicks')->default('1');
             $table->timestamps();
         });

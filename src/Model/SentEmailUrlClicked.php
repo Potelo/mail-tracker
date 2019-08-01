@@ -3,6 +3,7 @@
 namespace jdavidbakr\MailTracker\Model;
 
 use Illuminate\Database\Eloquent\Model;
+
 // use Model\SentEmail;
 
 class SentEmailUrlClicked extends Model
@@ -10,10 +11,10 @@ class SentEmailUrlClicked extends Model
     protected $table = 'sent_emails_url_clicked';
 
     protected $fillable = [
-    	'sent_email_id',
-    	'url',
+        'sent_email_id',
+        'url',
         'hash',
-    	'clicks',
+        'clicks',
     ];
 
     public function getConnectionName()
@@ -24,6 +25,6 @@ class SentEmailUrlClicked extends Model
 
     public function email()
     {
-      return $this->belongsTo(SentEmail::class,'sent_email_id');
+        return $this->belongsTo(SentEmail::class, 'sent_email_id');
     }
 }

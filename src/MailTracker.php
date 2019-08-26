@@ -111,6 +111,12 @@ class MailTracker implements \Swift_Events_SendListener
 
     public static function hash_url($url)
     {
+        $replace_pairs = [
+            "\t" => '%20',
+            " " => '%20',
+        ];
+        $url = strtr($url, $replace_pairs);
+
         // Replace "/" with "$"
         return str_replace("/", "$", base64_encode($url));
     }

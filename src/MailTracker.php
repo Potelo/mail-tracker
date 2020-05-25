@@ -160,6 +160,11 @@ class MailTracker implements \Swift_Events_SendListener
                     }
                 }
 
+                $mailable = null;
+                if (isset($message->mailable)) {
+                    $mailable = $message->mailable;
+                }
+
                 $tracker = SentEmail::create([
                     'hash'=>$hash,
                     'headers'=>$headers->toString(),
@@ -172,6 +177,7 @@ class MailTracker implements \Swift_Events_SendListener
                     'opens'=>0,
                     'clicks'=>0,
                     'message_id'=>$message->getId(),
+                    'mailable'=>$mailable,
                     'meta'=>[],
                 ]);
 

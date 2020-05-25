@@ -31,6 +31,7 @@ class SentEmail extends Model
     	'clicks',
         'message_id',
         'meta',
+        'mailable'
     ];
 
     protected $casts = [

@@ -6,6 +6,7 @@ use Event;
 use Illuminate\Support\Str;
 use jdavidbakr\MailTracker\Model\SentEmail;
 use jdavidbakr\MailTracker\Events\EmailSentEvent;
+use jdavidbakr\MailTracker\Model\SentEmailContent;
 use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
 
 class MailTracker implements \Swift_Events_SendListener
@@ -173,13 +174,17 @@ class MailTracker implements \Swift_Events_SendListener
                     'recipient_name'=>$to_name,
                     'recipient_email'=>$to_email,
                     'subject'=>$subject,
-                    'content'=> config('mail-tracker.log-content', true) ? (strlen($original_content) > 65535 ? substr($original_content, 0, 65532) . "..." : $original_content) : null,
                     'opens'=>0,
                     'clicks'=>0,
                     'message_id'=>$message->getId(),
                     'mailable'=>$mailable,
                     'meta'=>[],
                 ]);
+
+                $content = new SentEmailContent();
+                $content->content = config('mail-tracker.log-content', true) ? (strlen($original_content) > 65535 ? substr($original_content, 0, 65532) . "..." : $original_content) : null;
+
+                $tracker->content()->save($content);
 
                 Event::dispatch(new EmailSentEvent($tracker));
             }

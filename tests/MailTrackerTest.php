@@ -96,6 +96,7 @@ class AddressVerificationTest extends TestCase
         \Carbon\Carbon::setTestNow(\Carbon\Carbon::now()->addWeek());
 
         Event::fake();
+        \Mail::fake();
 
         $faker = Faker\Factory::create();
         $email = $faker->email;
@@ -137,6 +138,7 @@ class AddressVerificationTest extends TestCase
         $name = $faker->firstName . ' ' .$faker->lastName;
         $content = 'Text to e-mail';
         \View::addLocation(__DIR__);
+        \Mail::fake();
 
         Mail::raw($content, function ($message) use ($email, $name) {
             $message->from('from@johndoe.com', 'From Name');
@@ -158,6 +160,7 @@ class AddressVerificationTest extends TestCase
     public function it_doesnt_track_if_told_not_to()
     {
         Event::fake();
+        \Mail::fake();
 
         $faker = Faker\Factory::create();
         $email = $faker->email;
@@ -239,6 +242,7 @@ class AddressVerificationTest extends TestCase
             ]);
 
         Event::fake();
+        \Mail::fake();
 
         $pings = $track->opens;
         $pings++;
@@ -259,6 +263,7 @@ class AddressVerificationTest extends TestCase
             ]);
 
         Event::fake();
+        \Mail::fake();
 
         $clicks = $track->clicks;
         $clicks++;
@@ -291,6 +296,7 @@ class AddressVerificationTest extends TestCase
             ]);
 
         Event::fake();
+        \Mail::fake();
 
         $clicks = $track->clicks;
         $clicks++;

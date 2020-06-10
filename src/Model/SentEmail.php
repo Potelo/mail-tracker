@@ -38,6 +38,13 @@ class SentEmail extends Model
         'meta' => 'collection',
     ];
 
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+
+        $this->table = config('mail-tracker.table-name', 'sent_emails');
+    }
+
     public function getConnectionName()
     {
         $connName = config('mail-tracker.connection');
@@ -130,5 +137,10 @@ class SentEmail extends Model
     public function getSenderAttribute()
     {
         return $this->sender_name . '<' . $this->sender_email . '>';
+    }
+
+    public function content()
+    {
+        return $this->hasOne(SentEmailContent::class, 'sent_email_id');
     }
 }

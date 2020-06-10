@@ -17,6 +17,13 @@ class SentEmailUrlClicked extends Model
         'clicks',
     ];
 
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+
+        $this->table = config('mail-tracker.url-clicked-table-name', 'sent_emails_url_clicked');
+    }
+
     public function getConnectionName()
     {
         $connName = config('mail-tracker.connection');

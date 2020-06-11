@@ -21,7 +21,7 @@ return [
      */
     'route' => [
         'prefix' => 'email',
-        'middleware' => ['web'],
+        'middleware' => ['api'],
     ],
 
     /**

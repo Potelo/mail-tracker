@@ -6,7 +6,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use jdavidbakr\MailTracker\Model\SentEmail;
 
-class PermanentBouncedMessageEvent implements ShouldQueue
+class EmailDeliveredEvent implements ShouldQueue
 {
     use SerializesModels;
 

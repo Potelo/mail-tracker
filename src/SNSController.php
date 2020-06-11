@@ -2,16 +2,21 @@
 
 namespace jdavidbakr\MailTracker;
 
-use Illuminate\Http\Request;
+use Event;
 
 use App\Http\Requests;
-use Illuminate\Routing\Controller;
-use Event;
-use jdavidbakr\MailTracker\Model\SentEmail;
-use jdavidbakr\MailTracker\Events\PermanentBouncedMessageEvent;
-use Aws\Sns\Message as SNSMessage;
-use Aws\Sns\MessageValidator as SNSMessageValidator;
+use Illuminate\Http\Request;
 use GuzzleHttp\Client as Guzzle;
+use Aws\Sns\Message as SNSMessage;
+use Illuminate\Routing\Controller;
+use jdavidbakr\MailTracker\Model\SentEmail;
+use jdavidbakr\MailTracker\RecordBounceJob;
+use jdavidbakr\MailTracker\RecordDeliveryJob;
+use jdavidbakr\MailTracker\RecordComplaintJob;
+use Aws\Sns\MessageValidator as SNSMessageValidator;
+use jdavidbakr\MailTracker\Events\EmailDeliveredEvent;
+use jdavidbakr\MailTracker\Events\ComplaintMessageEvent;
+use jdavidbakr\MailTracker\Events\PermanentBouncedMessageEvent;
 
 class SNSController extends Controller
 {
@@ -23,14 +28,14 @@ class SNSController extends Controller
             $message = new SNSMessage(json_decode($request->message, true));
         } else {
             $message = SNSMessage::fromRawPostData();
-            $validator = new SNSMessageValidator();
+            $validator = app(SNSMessageValidator::class);
             $validator->validate($message);
         }
         // If we have a topic defined, make sure this is that topic
         if (config('mail-tracker.sns-topic') && $message->offsetGet('TopicArn') != config('mail-tracker.sns-topic')) {
             return 'invalid topic ARN';
         }
-        
+
         switch ($message->offsetGet('Type')) {
             case 'SubscriptionConfirmation':
                 return $this->confirm_subscription($message);
@@ -55,17 +60,9 @@ class SNSController extends Controller
                 break;
             case 'Bounce':
                 $this->process_bounce($message);
-                if ($message->bounce->bounceType == 'Permanent') {
-                    foreach ($message->bounce->bouncedRecipients as $recipient) {
-                        Event::dispatch(new PermanentBouncedMessageEvent($recipient->emailAddress));
-                    }
-                }
                 break;
             case 'Complaint':
                 $this->process_complaint($message);
-                foreach ($message->complaint->complainedRecipients as $recipient) {
-                    Event::dispatch(new PermanentBouncedMessageEvent($recipient->emailAddress));
-                }
                 break;
         }
         return 'notification processed';
@@ -73,50 +70,16 @@ class SNSController extends Controller
 
     protected function process_delivery($message)
     {
-        $sent_email = SentEmail::where('message_id', $message->mail->messageId)->first();
-        if ($sent_email) {
-            $meta = collect($sent_email->meta);
-            $meta->put('smtpResponse', $message->delivery->smtpResponse);
-            $meta->put('success', true);
-            $meta->put('delivered_at', $message->delivery->timestamp);
-            $sent_email->meta = $meta;
-            $sent_email->save();
-        }
+        RecordDeliveryJob::dispatch($message);
     }
 
     public function process_bounce($message)
     {
-        $sent_email = SentEmail::where('message_id', $message->mail->messageId)->first();
-        if ($sent_email) {
-            $meta = collect($sent_email->meta);
-            $current_codes = [];
-            if ($meta->has('failures')) {
-                $current_codes = $meta->get('failures');
-            }
-            foreach ($message->bounce->bouncedRecipients as $failure_details) {
-                $current_codes[] = $failure_details;
-            }
-            $meta->put('failures', $current_codes);
-            $meta->put('success', false);
-            $sent_email->meta = $meta;
-            $sent_email->save();
-        }
+        RecordBounceJob::dispatch($message);
     }
 
     public function process_complaint($message)
     {
-        $message_id = $message->mail->messageId;
-        $sent_email = SentEmail::where('message_id', $message_id)->first();
-        if ($sent_email) {
-            $meta = collect($sent_email->meta);
-            $meta->put('complaint', true);
-            $meta->put('success', false);
-            $meta->put('complaint_time', $message->complaint->timestamp);
-            if (!empty($message->complaint->complaintFeedbackType)) {
-                $meta->put('complaint_type', $message->complaint->complaintFeedbackType);
-            }
-            $sent_email->meta = $meta;
-            $sent_email->save();
-        }
+        RecordComplaintJob::dispatch($message);
     }
 }

@@ -17,18 +17,15 @@
         }
     ],
     "require": {
-        "laravel/framework": ">=5.3.23",
+        "php": ">=7.2.5",
+        "laravel/framework": "~7.0",
         "guzzlehttp/guzzle": "^5.3.1|^6.2.1",
-        "illuminate/support": "~5.1",
-        "aws/aws-sdk-php-laravel": "~3.0",
         "aws/aws-php-sns-message-validator": "^1.1",
-        "php" : "~5.5|~7.0"
+        "aws/aws-sdk-php": "^3.133"
     },
     "require-dev": {
-        "phpunit/phpunit" : "~7.0",
-        "scrutinizer/ocular": "~1.1",
-        "squizlabs/php_codesniffer": "~2.3",
-        "orchestra/testbench-browser-kit": "~3.0",
+        "phpunit/phpunit": "~8.0",
+        "orchestra/testbench": "~5.0",
         "mockery/mockery": "^1.1"
     },
     "suggest": {
@@ -41,7 +38,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "jdavidbakr\\MailTracker\\": "tests"
+            "jdavidbakr\\MailTracker\\Tests\\": "tests"
         }
     },
     "scripts": {

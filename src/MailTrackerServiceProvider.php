@@ -2,9 +2,10 @@
 
 namespace jdavidbakr\MailTracker;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Route;
 use Mail;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
 
 class MailTrackerServiceProvider extends ServiceProvider
 {
@@ -101,6 +102,7 @@ class MailTrackerServiceProvider extends ServiceProvider
             Route::group($config, function () {
                 Route::get('t/{hash}', 'MailTrackerController@getT')->name('mailTracker_t');
                 Route::get('l/{url}/{hash}', 'MailTrackerController@getL')->name('mailTracker_l');
+                Route::get('n', 'MailTrackerController@getN')->name('mailTracker_n');
                 Route::post('sns', 'SNSController@callback')->name('mailTracker_SNS');
             });
         } else {
@@ -115,7 +117,7 @@ class MailTrackerServiceProvider extends ServiceProvider
         $config_admin = $this->app['config']->get('mail-tracker.admin-route', []);
         $config_admin['namespace'] = 'jdavidbakr\MailTracker';
 
-        if (array_get($config_admin, 'enabled', true)) {
+        if (Arr::get($config_admin, 'enabled', true)) {
             if (!$this->isLumen()) {
                 Route::group($config_admin, function () {
                     Route::get('/', 'AdminController@getIndex')->name('mailTracker_Index');

@@ -2,10 +2,11 @@
 
 namespace jdavidbakr\MailTracker\Events;
 
-use jdavidbakr\MailTracker\Model\SentEmail;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use jdavidbakr\MailTracker\Model\SentEmail;
 
-class EmailSentEvent
+class EmailSentEvent implements ShouldQueue
 {
     use SerializesModels;
 

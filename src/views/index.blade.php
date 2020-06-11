@@ -52,7 +52,7 @@
                     <tr class="{{ $email->report_class }}">
                       <td>
                         <a href="{{route('mailTracker_SmtpDetail',$email->id)}}" target="_blank">
-                          {{ str_limit($email->smtp_info, 20) }}
+                          {{ Str::limit($email->smtp_info, 20) }}
                         </a>
                       </td>
                       <td>{{$email->recipient}}</td>

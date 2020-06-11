@@ -71,7 +71,6 @@ class MailTrackerTest extends SetUpTest
         \Carbon\Carbon::setTestNow(\Carbon\Carbon::now()->addWeek());
 
         Event::fake();
-        \Mail::fake();
 
         $faker = Factory::create();
         $email = $faker->email;

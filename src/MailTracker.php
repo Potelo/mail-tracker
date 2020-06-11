@@ -129,6 +129,35 @@ class MailTracker implements \Swift_Events_SendListener
     }
 
     /**
+     * @param $buffer
+     * @return string|string[]|null
+     */
+    protected function sanitizeHtml($html) {
+
+        if (is_null($html)) {
+            return null;
+        }
+
+        $search = array(
+            '/\>[^\S ]+/s',     // strip whitespaces after tags, except space
+            '/[^\S ]+\</s',     // strip whitespaces before tags, except space
+            '/(\s)+/s',         // shorten multiple whitespace sequences
+            '/<!--(.|\s)*?-->/' // Remove HTML comments
+        );
+
+        $replace = array(
+            '>',
+            '<',
+            '\\1',
+            ''
+        );
+
+        $html = preg_replace($search, $replace, $html);
+
+        return $html;
+    }
+
+    /**
      * Create the trackers
      *
      * @param  Swift_Mime_Message $message
@@ -189,6 +218,7 @@ class MailTracker implements \Swift_Events_SendListener
 
                 $content = new SentEmailContent();
                 $content->content = config('mail-tracker.log-content', true) ? (strlen($original_content) > 65535 ? substr($original_content, 0, 65532) . "..." : $original_content) : null;
+                $content->content = $this->sanitizeHtml($content->content);
 
                 $tracker->contentRelation()->save($content);
 

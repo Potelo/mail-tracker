@@ -184,7 +184,7 @@ class MailTracker implements \Swift_Events_SendListener
                 $content = new SentEmailContent();
                 $content->content = config('mail-tracker.log-content', true) ? (strlen($original_content) > 65535 ? substr($original_content, 0, 65532) . "..." : $original_content) : null;
 
-                $tracker->content()->save($content);
+                $tracker->contentRelation()->save($content);
 
                 Event::dispatch(new EmailSentEvent($tracker));
             }

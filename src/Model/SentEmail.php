@@ -139,8 +139,13 @@ class SentEmail extends Model
         return $this->sender_name . '<' . $this->sender_email . '>';
     }
 
-    public function content()
+    public function contentRelation()
     {
         return $this->hasOne(SentEmailContent::class, 'sent_email_id');
+    }
+
+    public function getContentAttribute()
+    {
+        return $this->contentRelation->content;
     }
 }

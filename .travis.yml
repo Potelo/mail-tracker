@@ -11,28 +11,21 @@ php:
     - 7.3
 
 env:
-    - LARAVEL_VERSION=5.7.*
-    - LARAVEL_VERSION=5.8.* COVERAGE=true
-    - LARAVEL_VERSION=6.0.* COVERAGE=true
+    - LARAVEL_VERSION=7.x-dev TESTBENCH=5.x-dev
+    - LARAVEL_VERSION=8.x-dev TESTBENCH=6.x-dev
 
-matrix:
-    # For each PHP version we exclude the coverage env, except for PHP 7.1
+jobs:
     exclude:
-        - php: 7.1
-          env: LARAVEL_VERSION=6.0.* COVERAGE=true
-        - php: 7.1
-          env: LARAVEL_VERSION=7.0.* COVERAGE=true
         - php: 7.2
-          env: LARAVEL_VERSION=6.0.* COVERAGE=true
-        - php: 7.2
-          env: LARAVEL_VERSION=5.7.*
+          env: LARAVEL_VERSION=8.x-dev TESTBENCH=6.x-dev
 
 before_install:
-    - echo "memory_limit=2G" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+    - echo "memory_limit=-1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
     - cp ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini ~/xdebug.ini
     - phpenv config-rm xdebug.ini
     - composer global require hirak/prestissimo --update-no-dev
     - composer require "laravel/framework:${LARAVEL_VERSION}" --no-update --prefer-dist
+    - composer require "orchestra/testbench:${TESTBENCH}" --no-update --prefer-dist
 
 install: travis_retry composer install --no-interaction --prefer-dist
 

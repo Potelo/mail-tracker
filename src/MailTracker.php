@@ -67,7 +67,7 @@ class MailTracker implements \Swift_Events_SendListener
         // Append the tracking url
         $tracking_pixel = '<img border=0 width=1 alt="" height=1 src="'.route('mailTracker_t', [$hash]).'" />';
 
-        $linebreak = Str::random(32);
+        $linebreak = app(Str::class)->random(32);
         $html = str_replace("\n", $linebreak, $html);
 
         if (preg_match("/^(.*<body[^>]*>)(.*)$/", $html, $matches)) {
@@ -85,7 +85,7 @@ class MailTracker implements \Swift_Events_SendListener
         $this->hash = $hash;
 
         $html = preg_replace_callback(
-            "/(<a[^>]*href=['\"])([^'\"]*)/",
+            "/(<a[^>]*href=[\"])([^\"]*)/",
             [$this, 'inject_link_callback'],
             $html
         );
@@ -175,7 +175,7 @@ class MailTracker implements \Swift_Events_SendListener
                     continue;
                 }
                 do {
-                    $hash = Str::random(32);
+                    $hash = app(Str::class)->random(32);
                     $used = SentEmail::where('hash', $hash)->count();
                 } while ($used > 0);
                 $headers->addTextHeader('X-Mailer-Hash', $hash);

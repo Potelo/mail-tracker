@@ -31,7 +31,8 @@ class MailTrackerController extends Controller
         $tracker = Model\SentEmail::where('hash', $hash)
             ->first();
         if ($tracker) {
-            RecordTrackingJob::dispatch($tracker);
+            RecordTrackingJob::dispatch($tracker)
+                ->onQueue(config('mail-tracker.tracker-queue'));
         }
 
         return $response;
@@ -58,7 +59,8 @@ class MailTrackerController extends Controller
         $tracker = Model\SentEmail::where('hash', $hash)
             ->first();
         if ($tracker) {
-            RecordLinkClickJob::dispatch($tracker, $url);
+            RecordLinkClickJob::dispatch($tracker, $url)
+                ->onQueue(config('mail-tracker.tracker-queue'));
             return redirect($url);
         }
 

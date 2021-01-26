@@ -69,6 +69,11 @@ class MailTrackerTest extends SetUpTest
             ]);
         // Go into the future to make sure that the old email gets removed
         \Carbon\Carbon::setTestNow(\Carbon\Carbon::now()->addWeek());
+        $str = Mockery::mock(Str::class);
+        app()->instance(Str::class, $str);
+        $str->shouldReceive('random')
+            ->once()
+            ->andReturn('random-hash');
 
         Event::fake();
 
@@ -99,6 +104,7 @@ class MailTrackerTest extends SetUpTest
         Event::assertDispatched(EmailSentEvent::class);
 
         $this->assertDatabaseHas('sent_emails', [
+                'hash' => 'random-hash',
                 'recipient' => $name.' <'.$email.'>',
                 'subject' => $subject,
                 'sender' => 'From Name <from@johndoe.com>',
@@ -115,6 +121,11 @@ class MailTrackerTest extends SetUpTest
         $name = $faker->firstName . ' ' .$faker->lastName;
         $content = 'Text to e-mail';
         View::addLocation(__DIR__);
+        $str = Mockery::mock(Str::class);
+        app()->instance(Str::class, $str);
+        $str->shouldReceive('random')
+            ->once()
+            ->andReturn('random-hash');
 
         try {
             Mail::raw($content, function ($message) use ($email, $name) {
@@ -126,6 +137,7 @@ class MailTrackerTest extends SetUpTest
         }
 
         $this->assertDatabaseHas('sent_emails', [
+            'hash' => 'random-hash',
             'recipient' => $name.' <'.$email.'>',
             'sender' => 'From Name <from@johndoe.com>',
             'recipient' => "{$name} <{$email}>",
@@ -180,7 +192,7 @@ class MailTrackerTest extends SetUpTest
      */
     public function testPing()
     {
-        $this->disableExceptionHandling();
+        Config::set('mail-tracker.tracker-queue', 'alt-queue');
         Bus::fake();
         $track = \jdavidbakr\MailTracker\Model\SentEmail::create([
                 'hash' => Str::random(32),
@@ -193,12 +205,14 @@ class MailTrackerTest extends SetUpTest
 
         $response->assertSuccessful();
         Bus::assertDispatched(RecordTrackingJob::class, function ($e) use ($track) {
-            return $e->sentEmail->id == $track->id;
+            return $e->sentEmail->id == $track->id &&
+                $e->queue == 'alt-queue';
         });
     }
 
     public function testLegacyLink()
     {
+        Config::set('mail-tracker.tracker-queue', 'alt-queue');
         Bus::fake();
         $track = \jdavidbakr\MailTracker\Model\SentEmail::create([
                 'hash' => Str::random(32),
@@ -215,12 +229,14 @@ class MailTrackerTest extends SetUpTest
         $response->assertRedirect($redirect);
         Bus::assertDispatched(RecordLinkClickJob::class, function ($job) use ($track, $redirect) {
             return $job->sentEmail->id == $track->id &&
-                $job->url == $redirect;
+                $job->url == $redirect &&
+                $job->queue == 'alt-queue';
         });
     }
 
     public function testLink()
     {
+        Config::set('mail-tracker.tracker-queue', 'alt-queue');
         Bus::fake();
         $track = \jdavidbakr\MailTracker\Model\SentEmail::create([
                 'hash' => Str::random(32),
@@ -236,7 +252,8 @@ class MailTrackerTest extends SetUpTest
         $response->assertRedirect($redirect);
         Bus::assertDispatched(RecordLinkClickJob::class, function ($job) use ($track, $redirect) {
             return $job->sentEmail->id == $track->id &&
-                $job->url == $redirect;
+                $job->url == $redirect &&
+                $job->queue == 'alt-queue';
         });
     }
 
@@ -357,6 +374,12 @@ class MailTrackerTest extends SetUpTest
      */
     public function it_retrieves_the_mesage_id_from_ses_mail_driver()
     {
+        $str = Mockery::mock(Str::class);
+        app()->instance(Str::class, $str);
+        $str->shouldReceive('random')
+            ->with(32)
+            ->once()
+            ->andReturn('random-hash');
         Config::set('mail.driver', 'ses');
         Config::set('mail.default', null);
         $headers = Mockery::mock();
@@ -364,17 +387,14 @@ class MailTrackerTest extends SetUpTest
             ->with('X-No-Track')
             ->once()
             ->andReturn(null);
-        $this->mailer_hash = '';
         $headers->shouldReceive('addTextHeader')
             ->once()
-            ->andReturnUsing(function ($key, $value) {
-                $this->mailer_hash = $value;
-            });
+            ->with('X-Mailer-Hash', 'random-hash');
         $mailer_hash_header = Mockery::mock();
         $mailer_hash_header->shouldReceive('getFieldBody')
             ->once()
             ->andReturnUsing(function () {
-                return $this->mailer_hash;
+                return 'random-hash';
             });
         $headers->shouldReceive('get')
             ->with('X-Mailer-Hash')
@@ -502,7 +522,7 @@ class MailTrackerTest extends SetUpTest
      */
     public function it_processes_a_delivery()
     {
-        $this->disableExceptionHandling();
+        Config::set('mail-tracker.tracker-queue', 'alt-queue');
         Bus::fake();
         $message = [
             'notificationType' => 'Delivery',
@@ -523,7 +543,8 @@ class MailTrackerTest extends SetUpTest
 
         $response->assertSee('notification processed');
         Bus::assertDispatched(RecordDeliveryJob::class, function ($job) use ($message) {
-            return $job->message == (object)$message;
+            return $job->message == (object)$message &&
+                $job->queue == 'alt-queue';
         });
     }
 
@@ -532,6 +553,7 @@ class MailTrackerTest extends SetUpTest
      */
     public function it_processes_a_bounce()
     {
+        Config::set('mail-tracker.tracker-queue', 'alt-queue');
         Bus::fake();
         $message = [
             'notificationType' => 'Bounce',
@@ -552,7 +574,8 @@ class MailTrackerTest extends SetUpTest
 
         $response->assertSee('notification processed');
         Bus::assertDispatched(RecordBounceJob::class, function ($job) use ($message) {
-            return $job->message == (object)$message;
+            return $job->message == (object)$message &&
+                $job->queue == 'alt-queue';
         });
     }
 
@@ -561,7 +584,7 @@ class MailTrackerTest extends SetUpTest
      */
     public function it_processes_a_complaint()
     {
-        $this->disableExceptionHandling();
+        Config::set('mail-tracker.tracker-queue', 'alt-queue');
         Bus::fake();
         $message = [
             'notificationType' => 'Complaint',
@@ -582,7 +605,8 @@ class MailTrackerTest extends SetUpTest
 
         $response->assertSee('notification processed');
         Bus::assertDispatched(RecordComplaintJob::class, function ($job) use ($message) {
-            return $job->message == (object)$message;
+            return $job->message == (object)$message &&
+                $job->queue == 'alt-queue';
         });
     }
 
@@ -650,6 +674,67 @@ class MailTrackerTest extends SetUpTest
         $this->assertNotNull($track);
         $this->assertEquals(1, $track->clicks);
     }
+
+    /**
+     * @test
+     */
+    public function it_handles_apostrophes_in_links()
+    {
+        Event::fake();
+        Config::set('mail-tracker.track-links', true);
+        Config::set('mail-tracker.inject-pixel', true);
+        Config::set('mail.driver', 'array');
+        (new MailServiceProvider(app()))->register();
+        // Must re-register the MailTracker to get the test to work
+        $this->app['mailer']->getSwiftMailer()->registerPlugin(new MailTracker());
+
+        $faker = Factory::create();
+        $email = $faker->email;
+        $subject = $faker->sentence;
+        $name = $faker->firstName . ' ' . $faker->lastName;
+        View::addLocation(__DIR__);
+
+        Mail::send('email.testApostrophe', [], function ($message) use ($email, $subject, $name) {
+            $message->from('from@johndoe.com', 'From Name');
+            $message->sender('sender@johndoe.com', 'Sender Name');
+            $message->to($email, $name);
+            $message->cc('cc@johndoe.com', 'CC Name');
+            $message->bcc('bcc@johndoe.com', 'BCC Name');
+            $message->replyTo('reply-to@johndoe.com', 'Reply-To Name');
+            $message->subject($subject);
+            $message->priority(3);
+        });
+        $driver = app('mailer')->getSwiftMailer()->getTransport();
+        $this->assertEquals(1, count($driver->messages()));
+
+        $mes = $driver->messages()[0];
+        $body = $mes->getBody();
+        $hash = $mes->getHeaders()->get('X-Mailer-Hash')->getValue();
+
+        $matches = null;
+        preg_match_all('/(<a[^>]*href=[\"])([^\"]*)/', $body, $matches);
+        $links = $matches[2];
+        $aLink = $links[0];
+
+        $expected_url = "http://www.google.com?q=foo'bar";
+        $this->assertNotNull($aLink);
+        $this->assertNotEquals($expected_url, $aLink);
+
+        $response = $this->call('GET', $aLink);
+        $response->assertRedirect($expected_url);
+
+        Event::assertDispatched(LinkClickedEvent::class);
+
+        $this->assertDatabaseHas('sent_emails_url_clicked', [
+            'url' => $expected_url,
+            'clicks' => 1,
+        ]);
+
+        $track = \jdavidbakr\MailTracker\Model\SentEmail::whereHash($hash)->first();
+        $this->assertNotNull($track);
+        $this->assertEquals(1, $track->clicks);
+    }
+
 
     /**
      * @test

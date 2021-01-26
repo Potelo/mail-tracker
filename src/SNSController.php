@@ -70,16 +70,19 @@ class SNSController extends Controller
 
     protected function process_delivery($message)
     {
-        RecordDeliveryJob::dispatch($message);
+        RecordDeliveryJob::dispatch($message)
+            ->onQueue(config('mail-tracker.tracker-queue'));
     }
 
     public function process_bounce($message)
     {
-        RecordBounceJob::dispatch($message);
+        RecordBounceJob::dispatch($message)
+            ->onQueue(config('mail-tracker.tracker-queue'));
     }
 
     public function process_complaint($message)
     {
-        RecordComplaintJob::dispatch($message);
+        RecordComplaintJob::dispatch($message)
+            ->onQueue(config('mail-tracker.tracker-queue'));
     }
 }

@@ -65,13 +65,13 @@ class MailTracker implements \Swift_Events_SendListener
     protected function injectTrackingPixel($html, $hash)
     {
         // Append the tracking url
-        $tracking_pixel = '<img border=0 width=1 alt="" height=1 src="'.route('mailTracker_t', [$hash]).'" />';
+        $tracking_pixel = '<img border=0 width=1 alt="" height=1 src="' . route('mailTracker_t', [$hash]) . '" />';
 
         $linebreak = app(Str::class)->random(32);
         $html = str_replace("\n", $linebreak, $html);
 
         if (preg_match("/^(.*<body[^>]*>)(.*)$/", $html, $matches)) {
-            $html = $matches[1].$matches[2].$tracking_pixel;
+            $html = $matches[1] . $matches[2] . $tracking_pixel;
         } else {
             $html = $html . $tracking_pixel;
         }
@@ -101,7 +101,7 @@ class MailTracker implements \Swift_Events_SendListener
             $url = str_replace('&amp;', '&', $matches[2]);
         }
 
-        return $matches[1].route(
+        return $matches[1] . route(
             'mailTracker_n',
             [
                 'l' => $url,
@@ -132,7 +132,8 @@ class MailTracker implements \Swift_Events_SendListener
      * @param $buffer
      * @return string|string[]|null
      */
-    protected function sanitizeHtml($html) {
+    protected function sanitizeHtml($html)
+    {
 
         if (is_null($html)) {
             return null;
@@ -183,7 +184,8 @@ class MailTracker implements \Swift_Events_SendListener
 
                 $original_content = $message->getBody();
 
-                if ($message->getContentType() === 'text/html' ||
+                if (
+                    $message->getContentType() === 'text/html' ||
                     ($message->getContentType() === 'multipart/alternative' && $message->getBody()) ||
                     ($message->getContentType() === 'multipart/mixed' && $message->getBody())
                 ) {
@@ -202,18 +204,16 @@ class MailTracker implements \Swift_Events_SendListener
                 }
 
                 $tracker = SentEmail::create([
-                    'hash'=>$hash,
-                    'headers'=>$headers->toString(),
-                    'sender_name'=>$from_name,
-                    'sender_email'=>$from_email,
-                    'recipient_name'=>$to_name,
-                    'recipient_email'=>$to_email,
-                    'subject'=>$subject,
-                    'opens'=>0,
-                    'clicks'=>0,
-                    'message_id'=>$message->getId(),
-                    'mailable'=>$mailable,
-                    'meta'=>[],
+                    'hash' => $hash,
+                    'headers' => $headers->toString(),
+                    'sender' => $from_name . " <" . $from_email . ">",
+                    'recipient' => $to_name . ' <' . $to_email . '>',
+                    'subject' => $subject,
+                    'content' => config('mail-tracker.log-content', true) ? (strlen($original_content) > config('mail-tracker.content-max-size', 65535) ? substr($original_content, 0, config('mail-tracker.content-max-size', 65535)) . '...' : $original_content) : null,
+                    'opens' => 0,
+                    'clicks' => 0,
+                    'message_id' => $message->getId(),
+                    'meta' => [],
                 ]);
 
                 $content_text = strlen($original_content) > 65535 ? substr($original_content, 0, 65532) . "..." : $original_content;

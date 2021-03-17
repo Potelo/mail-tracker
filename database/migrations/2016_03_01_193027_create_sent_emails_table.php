@@ -14,19 +14,25 @@ class CreateSentEmailsTable extends Migration
     public function up()
     {
         Schema::connection((new SentEmail)->getConnectionName())->create(config('mail-tracker.table-name', 'sent_emails'), function (Blueprint $table) {
-            $table->increments('id');
-            $table->char('hash', 32)->unique();
+            $table->bigIncrements('id');
+
+            $table->char('hash',32)->unique();
             $table->text('headers')->nullable();
             $table->string('sender_name')->nullable();
             $table->string('sender_email')->nullable();
             $table->string('recipient_name')->nullable();
             $table->string('recipient_email')->nullable();
             $table->string('subject')->nullable();
-            $table->text('content')->nullable();
             $table->integer('opens')->nullable();
             $table->integer('clicks')->nullable();
+            $table->integer('user_id')->index()->nullable();
             $table->string('mailable')->nullable();
+            $table->string('message_id')->nullable();
+            $table->text('meta');
+
             $table->timestamps();
+
+            $table->index(['created_at', 'mailable']);
         });
     }
 

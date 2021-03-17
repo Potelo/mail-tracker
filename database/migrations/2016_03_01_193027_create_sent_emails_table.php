@@ -13,7 +13,7 @@ class CreateSentEmailsTable extends Migration
      */
     public function up()
     {
-        Schema::connection((new SentEmail)->getConnectionName())->create('sent_emails', function (Blueprint $table) {
+        Schema::connection((new SentEmail)->getConnectionName())->create(config('mail-tracker.table-name', 'sent_emails'), function (Blueprint $table) {
             $table->increments('id');
             $table->char('hash', 32)->unique();
             $table->text('headers')->nullable();
@@ -37,6 +37,6 @@ class CreateSentEmailsTable extends Migration
      */
     public function down()
     {
-        Schema::connection((new SentEmail())->getConnectionName())->drop('sent_emails');
+        Schema::connection((new SentEmail())->getConnectionName())->drop(config('mail-tracker.table-name', 'sent_emails'));
     }
 }

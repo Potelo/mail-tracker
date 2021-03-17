@@ -14,7 +14,7 @@ class CreateSentEmailContent extends Migration
      */
     public function up()
     {
-        Schema::create('sent_emails_content', function (Blueprint $table) {
+        Schema::create(config('mail-tracker.content-table-name', 'sent_emails_content'), function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->integer('sent_email_id')->unsigned()->index();
             $table->text('content')->nullable();

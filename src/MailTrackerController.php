@@ -11,7 +11,6 @@ use Illuminate\Routing\Controller;
 use jdavidbakr\MailTracker\RecordTrackingJob;
 use jdavidbakr\MailTracker\RecordLinkClickJob;
 use jdavidbakr\MailTracker\Events\ViewEmailEvent;
-use jdavidbakr\MailTracker\Exceptions\BadUrlLink;
 use jdavidbakr\MailTracker\Events\LinkClickedEvent;
 
 class MailTrackerController extends Controller
@@ -46,7 +45,7 @@ class MailTrackerController extends Controller
     {
         $url = base64_decode(str_replace("$", "/", $url));
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            throw new BadUrlLink('Mail hash: '.$hash);
+            abort(404);
         }
         return $this->linkClicked($url, $hash);
     }
@@ -72,6 +71,6 @@ class MailTrackerController extends Controller
             return redirect($url);
         }
 
-        throw new BadUrlLink('Mail hash: '.$hash);
+        abort(404);
     }
 }

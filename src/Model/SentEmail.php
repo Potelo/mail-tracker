@@ -31,11 +31,15 @@ class SentEmail extends Model
     	'clicks',
         'message_id',
         'meta',
+        'opened_at',
+        'clicked_at',
         'mailable'
     ];
 
     protected $casts = [
         'meta' => 'collection',
+        'opened_at' => 'datetime',
+        'clicked_at' => 'datetime',
     ];
 
     public function __construct(array $attributes = [])
@@ -66,6 +70,16 @@ class SentEmail extends Model
         } else {
             return '';
         }
+    }
+
+    public function getSenderAttribute()
+    {
+        return $this->sender_name.' <'.$this->sender_email.'>';
+    }
+
+    public function getRecipientAttribute()
+    {
+        return $this->recipient_name.' <'.$this->recipient_email.'>';
     }
 
     /**
@@ -130,16 +144,6 @@ class SentEmail extends Model
     public function urlClicks()
     {
         return $this->hasMany(SentEmailUrlClicked::class);
-    }
-
-    public function getRecipientAttribute()
-    {
-        return $this->recipient_name . '<' . $this->recipient_email . '>';
-    }
-
-    public function getSenderAttribute()
-    {
-        return $this->sender_name . '<' . $this->sender_email . '>';
     }
 
     public function contentRelation()

@@ -33,6 +33,10 @@ class MailTrackerController extends Controller
         if ($tracker) {
             RecordTrackingJob::dispatch($tracker)
                 ->onQueue(config('mail-tracker.tracker-queue'));
+            if (!$tracker->opened_at) {
+                $tracker->opened_at = now();
+                $tracker->save();
+            }
         }
 
         return $response;
@@ -61,6 +65,10 @@ class MailTrackerController extends Controller
         if ($tracker) {
             RecordLinkClickJob::dispatch($tracker, $url)
                 ->onQueue(config('mail-tracker.tracker-queue'));
+            if (!$tracker->clicked_at) {
+                $tracker->clicked_at = now();
+                $tracker->save();
+            }
             return redirect($url);
         }
 

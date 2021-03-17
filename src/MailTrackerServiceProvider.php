@@ -32,6 +32,9 @@ class MailTrackerServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->publishViews();
 
+        // Register console commands
+        $this->registerCommands();
+
         // Hook into the mailer
         $this->registerSwiftPlugin();
 
@@ -75,6 +78,15 @@ class MailTrackerServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/views' => base_path('resources/views/vendor/emailTrakingViews'),
                 ]);
+        }
+    }
+
+    public function registerCommands()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                Console\MigrateRecipients::class,
+            ]);
         }
     }
 

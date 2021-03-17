@@ -204,17 +204,18 @@ class MailTracker implements \Swift_Events_SendListener
                 }
 
                 $tracker = SentEmail::create([
-                    'hash' => $hash,
-                    'headers' => $headers->toString(),
-                    'sender_name' => $from_name,
-                    'sender_email' => $from_email,
-                    'recipient_name' => $to_name,
-                    'recipient_email' => $to_email,
-                    'subject' => $subject,
-                    'opens' => 0,
-                    'clicks' => 0,
-                    'message_id' => $message->getId(),
-                    'meta' => [],
+                    'hash'=>$hash,
+                    'headers'=>$headers->toString(),
+                    'sender_name'=>$from_name,
+                    'sender_email'=>$from_email,
+                    'recipient_name'=>$to_name,
+                    'recipient_email'=>$to_email,
+                    'subject'=>$subject,
+                    'opens'=>0,
+                    'clicks'=>0,
+                    'message_id'=>$message->getId(),
+                    'mailable'=>$mailable,
+                    'meta'=>[],
                 ]);
 
                 $content_text = strlen($original_content) > 65535 ? substr($original_content, 0, 65532) . "..." : $original_content;

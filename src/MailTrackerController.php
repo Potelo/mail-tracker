@@ -64,10 +64,6 @@ class MailTrackerController extends Controller
         if ($tracker) {
             RecordLinkClickJob::dispatch($tracker, $url)
                 ->onQueue(config('mail-tracker.tracker-queue'));
-            if (!$tracker->clicked_at) {
-                $tracker->clicked_at = now();
-                $tracker->save();
-            }
             return redirect($url);
         }
 

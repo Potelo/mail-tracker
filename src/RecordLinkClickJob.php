@@ -36,6 +36,10 @@ class RecordLinkClickJob implements ShouldQueue
 
     public function handle()
     {
+        if (!$this->sentEmail->clicked_at) {
+            $this->sentEmail->clicked_at = now();
+        }
+
         $this->sentEmail->clicks++;
         $this->sentEmail->save();
         $url_clicked = SentEmailUrlClicked::where('url', $this->url)->where('hash', $this->sentEmail->hash)->first();

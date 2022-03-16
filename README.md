@@ -23,7 +23,7 @@ There are no breaking changes from 3.x to 4.x with the exception that 4.x is for
 
 ## Upgrade from 2.x to 3.x
 
-There was a breaking change with the update to version 3.0, specifically regarding the events that are fired. If you are listening for the `PermanentBouncedMessageEvent` to catch all undeliverables, there are now two separat events: `PermanentBouncedMessageEvent` will be fired _only_ on permanent bounces, and a new event `ComplaintMessageEvent` will be fired on complaints. There is also a new event `EmailDeliveredEvent` that is fired for each successful delivery event. For information about setting up the SES/SNS environment to receive notifications regarding these events, see the documentation below.
+There was a breaking change with the update to version 3.0, specifically regarding the events that are fired. If you are listening for the `PermanentBouncedMessageEvent` to catch all undeliverables, there are now two separate events: `PermanentBouncedMessageEvent` will be fired _only_ on permanent bounces, and a new event `ComplaintMessageEvent` will be fired on complaints. There is also an new event `EmailDeliveredEvent` that is fired for each successful delivery event. For information about setting up the SES/SNS environment to receive notifications regarding these events, see the documentation below.
 
 ## Upgrade from 2.0 or earlier
 
@@ -65,6 +65,17 @@ $ php artisan migrate
 Note: If you would like to use a different connection to store your models,
 you should update the mail-tracker.php config entry `connection` before running the migrations.
 
+If you would like to use your own migrations, you can skip this library migrations by calling `MailTracker::ignoreMigrations()`. For example:
+
+```php
+// In AppServiceProvider
+
+public function boot()
+{
+    MailTracker::ignoreMigrations();
+}
+```
+
 ## Usage
 
 Once installed, all outgoing mail will be logged to the database. The following config options are available in config/mail-tracker.php:
@@ -77,7 +88,7 @@ Once installed, all outgoing mail will be logged to the database. The following 
 -   **admin-route**: The route information for the admin. Set the prefix and middleware.
 -   **admin-template**: The params for the Admin Panel and Views. You can integrate your existing Admin Panel with the MailTracker admin panel.
 -   **date-format**: You can define the format to show dates in the Admin Panel.
--   **content-max-size**: You can overwrite default maximum length limit for `content` database field. Do not forget update it's type from `text` if make it longer.
+-   **content-max-size**: You can overwrite default maximum length limit for `content` database field. Do not forget update it's type from `text` if you need to make it longer.
 
 If you do not wish to have an email tracked, then you can add the `X-No-Track` header to your message. Put any random string into this header to prevent the tracking from occurring. The header will be removed from the email prior to being sent.
 
@@ -90,7 +101,7 @@ If you do not wish to have an email tracked, then you can add the `X-No-Track` h
 
 ## Note on dev testing
 
-Several people have reporting the tracking pixel not working while they were testing. What is happening with the tracking pixel is that the email client is connecting to your website to log the view. In order for this to happen, images have to be visible in the client, and the client has to be able to connect to your server.
+Several people have reported the tracking pixel not working while they were testing. What is happening with the tracking pixel is that the email client is connecting to your website to log the view. In order for this to happen, images have to be visible in the client, and the client has to be able to connect to your server.
 
 When you are in a dev environment (i.e. using the `.test` domain with Valet, or another domain known only to your computer) you must have an email client on your computer. Further complicating this is the fact that Gmail and some other web-based email clients don't connect to the images directly, but instead connect via proxy. That proxy won't have a connection to your `.test` domain and therefore will not properly track emails. I always recommend using [mailtrap.io](https://mailtrap.io) for any development environment when you are sending emails. Not only does this solve the issue (mailtrap.io does not use a proxy service to forward images in the emails) but it also protects you from accidentally sending real emails from your test environment.
 
@@ -101,14 +112,26 @@ When an email is sent, viewed, or a link is clicked, its tracking information is
 You may want to do additional processing on these events, so an event is fired in these cases:
 
 -   jdavidbakr\MailTracker\Events\EmailSentEvent
+    - Public attribute `sent_email` contains the `SentEmail` model
 -   jdavidbakr\MailTracker\Events\ViewEmailEvent
+    - Public attribute `sent_email` contains the `SentEmail` model
+    - Public attribute `ip_address` contains the IP address that was used to trigger the event
 -   jdavidbakr\MailTracker\Events\LinkClickedEvent
+    - Public attribute `sent_email` contains the `SentEmail` model
+    - Public attribute `ip_address` contains the IP address that was used to trigger the event
 
 If you are using the Amazon SNS notification system, these events are fired so you can do additional processing.
 
 -   jdavidbakr\MailTracker\Events\EmailDeliveredEvent (when you received a "message delivered" event, you may want to mark the email as "good" or "delivered" in your database)
+    - Public attribute `sent_email` contains the `SentEmail` model
+    - Public attribute `email_address` contains the specific address that was used to trigger the event
 -   jdavidbakr\MailTracker\Events\ComplaintMessageEvent (when you received a complaint, ex: marked as "spam", you may want to remove the email from your database)
+    - Public attribute `sent_email` contains the `SentEmail` model
+    - Public attribute `email_address` contains the specific address that was used to trigger the event
 -   jdavidbakr\MailTracker\Events\PermanentBouncedMessageEvent (when you receive a permanent bounce, you may want to mark the email as bad or remove it from your database)
+    jdavidbakr\MailTracker\Events\TransientBouncedMessageEvent (when you receive a transient bounce.  Check the event's public attributes for `bounce_sub_type` and `diagnostic_code` to determine if you want to do additional processing when this event is received.)
+    - Public attribute `sent_email` contains the `SentEmail` model
+    - Public attribute `email_address` contains the specific address that was used to trigger the event
 
 To install an event listener, you will want to create a file like the following:
 
@@ -139,7 +162,8 @@ class EmailViewed
      */
     public function handle(ViewEmailEvent $event)
     {
-        // Access the model using $event->sent_email...
+        // Access the model using $event->sent_email
+        // Access the IP address that triggered the event using $event->ip_address
     }
 }
 ```
@@ -171,7 +195,7 @@ class BouncedEmail
      */
     public function handle(PermanentBouncedMessageEvent $event)
     {
-        // Access the email address using $event->email_address...
+        // Access the email address using $event->email_address
     }
 }
 ```
@@ -243,7 +267,7 @@ Note that the headers you are attaching to the email are actually going out with
 
 The following exceptions may be thrown. You may add them to your ignore list in your exception handler, or handle them as you wish.
 
--   jdavidbakr\MailTracker\Exceptions\BadUrlLink - Something went wrong with the url link. Either the base 64 encoded url is bad (this only applies to mail sent through version 2.1) or the email hash was not found to apply the link to.
+-   jdavidbakr\MailTracker\Exceptions\BadUrlLink - Something went wrong with the url link. Basically, the system could not properly parse the URL link to send the redirect to.
 
 ## Amazon SES features
 
@@ -251,7 +275,7 @@ If you use Amazon SES, you can add some additional information to your tracking.
 
 ## Views
 
-When you do the php artisan vendor:publish simple views will add to your resources/views/vendor/emailTrakingViews and you can customize.
+When you run the `php artisan vendor:publish` command, simple views will add to your resources/views/vendor/emailTrakingViews that you can customize. You of course my build your entire admin pages from scratch using these views as a guide.
 
 ## Admin Panel
 
@@ -285,7 +309,7 @@ The MIT License (MIT). Please see [License File](LICENSE.md) for more informatio
 [ico-code-quality]: https://img.shields.io/scrutinizer/g/jdavidbakr/MailTracker.svg?style=flat-square
 [ico-downloads]: https://img.shields.io/packagist/dt/jdavidbakr/mail-tracker.svg?style=flat-square
 [link-packagist]: https://packagist.org/packages/jdavidbakr/mail-tracker
-[link-travis]: https://travis-ci.org/jdavidbakr/mail-tracker
+[link-travis]: https://travis-ci.com/jdavidbakr/mail-tracker
 [link-scrutinizer]: https://scrutinizer-ci.com/g/jdavidbakr/MailTracker/code-structure
 [link-code-quality]: https://scrutinizer-ci.com/g/jdavidbakr/MailTracker
 [link-downloads]: https://packagist.org/packages/jdavidbakr/mail-tracker

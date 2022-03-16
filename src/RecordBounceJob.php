@@ -3,13 +3,14 @@
 namespace jdavidbakr\MailTracker;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use jdavidbakr\MailTracker\Model\SentEmail;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Event;
 use jdavidbakr\MailTracker\Events\PermanentBouncedMessageEvent;
+use jdavidbakr\MailTracker\Events\TransientBouncedMessageEvent;
+use jdavidbakr\MailTracker\Model\SentEmail;
 
 class RecordBounceJob implements ShouldQueue
 {
@@ -49,10 +50,29 @@ class RecordBounceJob implements ShouldQueue
             $sent_email->save();
 
             if ($this->message->bounce->bounceType == 'Permanent') {
-                foreach ($this->message->bounce->bouncedRecipients as $recipient) {
-                    Event::dispatch(new PermanentBouncedMessageEvent($recipient->emailAddress, $sent_email));
-                }
+                $this->permanentBounce($sent_email);
+            } else {
+                $this->transientBounce($sent_email);
             }
+        }
+    }
+
+    protected function permanentBounce($sent_email)
+    {
+        foreach ($this->message->bounce->bouncedRecipients as $recipient) {
+            Event::dispatch(new PermanentBouncedMessageEvent($recipient->emailAddress, $sent_email));
+        }
+    }
+
+    protected function transientBounce($sent_email)
+    {
+        foreach ($this->message->bounce->bouncedRecipients as $recipient) {
+            Event::dispatch(new TransientBouncedMessageEvent(
+                $recipient->emailAddress,
+                $this->message->bounce->bounceSubType,
+                optional($recipient)->diagnosticCode ?: '',
+                $sent_email
+            ));
         }
     }
 }

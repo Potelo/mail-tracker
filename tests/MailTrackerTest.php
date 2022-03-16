@@ -2,39 +2,39 @@
 
 namespace jdavidbakr\MailTracker\Tests;
 
-use Mockery;
+use Aws\Sns\MessageValidator as SNSMessageValidator;
 use Exception;
-use Throwable;
 use Faker\Factory;
-use Illuminate\Support\Str;
-use Swift_TransportException;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Foundation\Support\Providers\RouteServiceProvider;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Mail\MailServiceProvider;
 use Illuminate\Support\Carbon;
-use Orchestra\Testbench\TestCase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Config;
-use jdavidbakr\MailTracker\MailTracker;
-use Illuminate\Mail\MailServiceProvider;
-use jdavidbakr\MailTracker\Model\SentEmail;
-use jdavidbakr\MailTracker\RecordBounceJob;
-use Orchestra\Testbench\Exceptions\Handler;
-use jdavidbakr\MailTracker\RecordDeliveryJob;
-use jdavidbakr\MailTracker\RecordTrackingJob;
-use jdavidbakr\MailTracker\RecordComplaintJob;
-use jdavidbakr\MailTracker\RecordLinkClickJob;
-use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Support\Str;
+use jdavidbakr\MailTracker\Events\ComplaintMessageEvent;
+use jdavidbakr\MailTracker\Events\EmailDeliveredEvent;
 use jdavidbakr\MailTracker\Events\EmailSentEvent;
+use jdavidbakr\MailTracker\Events\LinkClickedEvent;
 use jdavidbakr\MailTracker\Events\ViewEmailEvent;
 use jdavidbakr\MailTracker\Exceptions\BadUrlLink;
-use jdavidbakr\MailTracker\Events\LinkClickedEvent;
-use Aws\Sns\MessageValidator as SNSMessageValidator;
+use jdavidbakr\MailTracker\MailTracker;
+use jdavidbakr\MailTracker\Model\SentEmail;
 use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
-use jdavidbakr\MailTracker\Events\EmailDeliveredEvent;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
-use jdavidbakr\MailTracker\Events\ComplaintMessageEvent;
-use jdavidbakr\MailTracker\Events\PermanentBouncedMessageEvent;
+use jdavidbakr\MailTracker\RecordBounceJob;
+use jdavidbakr\MailTracker\RecordComplaintJob;
+use jdavidbakr\MailTracker\RecordDeliveryJob;
+use jdavidbakr\MailTracker\RecordLinkClickJob;
+use jdavidbakr\MailTracker\RecordTrackingJob;
+use Mockery;
+use Orchestra\Testbench\Exceptions\Handler;
+use Orchestra\Testbench\TestCase;
+use Swift_TransportException;
+use Throwable;
 
 class IgnoreExceptions extends Handler
 {
@@ -219,6 +219,7 @@ class MailTrackerTest extends SetUpTest
         $response->assertSuccessful();
         Bus::assertDispatched(RecordTrackingJob::class, function ($e) use ($track) {
             return $e->sentEmail->id == $track->id &&
+                $e->ipAddress == '127.0.0.1' &&
                 $e->queue == 'alt-queue';
         });
         $this->assertDatabaseHas('sent_emails', [
@@ -248,6 +249,7 @@ class MailTrackerTest extends SetUpTest
         $response->assertSuccessful();
         Bus::assertDispatched(RecordTrackingJob::class, function ($e) use ($track) {
             return $e->sentEmail->id == $track->id &&
+                $e->ipAddress == '127.0.0.1' &&
                 $e->queue == 'alt-queue';
         });
         $this->assertDatabaseHas('sent_emails', [
@@ -277,6 +279,7 @@ class MailTrackerTest extends SetUpTest
         Bus::assertDispatched(RecordLinkClickJob::class, function ($job) use ($track, $redirect) {
             return $job->sentEmail->id == $track->id &&
                 $job->url == $redirect &&
+                $job->ipAddress == '127.0.0.1' &&
                 $job->queue == 'alt-queue';
         });
         $this->assertDatabaseHas('sent_emails', [
@@ -288,6 +291,7 @@ class MailTrackerTest extends SetUpTest
     public function testLink()
     {
         Carbon::setTestNow(now());
+        Config::set('mail-tracker.inject-pixel', true);
         Config::set('mail-tracker.tracker-queue', 'alt-queue');
         Bus::fake();
         $track = SentEmail::create([
@@ -305,21 +309,21 @@ class MailTrackerTest extends SetUpTest
         Bus::assertDispatched(RecordLinkClickJob::class, function ($job) use ($track, $redirect) {
             return $job->sentEmail->id == $track->id &&
                 $job->url == $redirect &&
+                $job->ipAddress == '127.0.0.1' &&
                 $job->queue == 'alt-queue';
         });
         $this->assertDatabaseHas('sent_emails', [
             'id' => $track->id,
             'clicked_at' => now()->format("Y-m-d H:i:s"),
+            'opened_at' => now()->format("Y-m-d H:i:s"),
         ]);
     }
 
     /**
      * @test
      */
-    public function it_throws_exception_on_invalid_link()
+    public function it_redirects_even_if_no_sent_email_exists()
     {
-        $this->disableExceptionHandling();
-        $this->expectException(BadUrlLink::class);
         $track = SentEmail::create([
                 'hash' => Str::random(32),
             ]);
@@ -339,7 +343,31 @@ class MailTrackerTest extends SetUpTest
             ]);
         $response = $this->get($url);
 
-        $response->assertStatus(500);
+        $response->assertRedirect($redirect);
+    }
+
+    /**
+     * @test
+     */
+    public function it_redirects_to_config_page_if_no_url_in_request()
+    {
+        Config::set('mail-tracker.redirect-missing-links-to', '/home');
+
+        $url = route('mailTracker_n');
+        $response = $this->get($url);
+
+        $response->assertRedirect('/home');
+    }
+
+    /**
+     * @test
+     */
+    public function it_redirects_to_home_page_if_no_url_in_request()
+    {
+        $url = route('mailTracker_n');
+        $response = $this->get($url);
+
+        $response->assertRedirect('/');
     }
 
     /**

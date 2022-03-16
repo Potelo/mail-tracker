@@ -11,7 +11,22 @@ use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
 
 class MailTracker implements \Swift_Events_SendListener
 {
+    // Set this to "false" to skip this library migrations
+    public static $runsMigrations = true;
+
     protected $hash;
+
+    /**
+     * Configure this library to not register its migrations.
+     *
+     * @return static
+     */
+    public static function ignoreMigrations()
+    {
+        static::$runsMigrations = false;
+
+        return new static;
+    }
 
     /**
      * Inject the tracking code into the message

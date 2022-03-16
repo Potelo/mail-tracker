@@ -22,10 +22,12 @@ class RecordTrackingJob implements ShouldQueue
     use SerializesModels;
 
     public $sentEmail;
+    public $ipAddress;
 
-    public function __construct($sentEmail)
+    public function __construct($sentEmail, $ipAddress)
     {
         $this->sentEmail = $sentEmail;
+        $this->ipAddress = $ipAddress;
     }
 
     public function retryUntil()
@@ -37,6 +39,6 @@ class RecordTrackingJob implements ShouldQueue
     {
         $this->sentEmail->opens++;
         $this->sentEmail->save();
-        Event::dispatch(new ViewEmailEvent($this->sentEmail));
+        Event::dispatch(new ViewEmailEvent($this->sentEmail, $this->ipAddress));
     }
 }

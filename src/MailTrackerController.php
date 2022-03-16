@@ -2,20 +2,14 @@
 
 namespace jdavidbakr\MailTracker;
 
-use App\Http\Requests;
 use Event;
-use Illuminate\Foundation\Support\Providers\RouteServiceProvider;
-
+use Response;
+use App\Http\Requests;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use jdavidbakr\MailTracker\RecordTrackingJob;
-use jdavidbakr\MailTracker\RecordLinkClickJob;
-use jdavidbakr\MailTracker\Events\ViewEmailEvent;
-use jdavidbakr\MailTracker\Events\LinkClickedEvent;
 use jdavidbakr\MailTracker\Exceptions\BadUrlLink;
-use jdavidbakr\MailTracker\RecordLinkClickJob;
-use jdavidbakr\MailTracker\RecordTrackingJob;
-use Response;
+
+
 
 class MailTrackerController extends Controller
 {

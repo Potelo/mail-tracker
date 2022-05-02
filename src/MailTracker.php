@@ -233,7 +233,9 @@ class MailTracker implements \Swift_Events_SendListener
                     'meta'=>[],
                 ]);
 
-                $content_text = strlen($original_content) > 65535 ? substr($original_content, 0, 65532) . "..." : $original_content;
+                $content_text = strlen($original_content) > config('mail-tracker.max_content_length', 65535)
+                    ? substr($original_content, 0, config('mail-tracker.max_content_length', 65535) - 3) . "..."
+                    : $original_content;
                 $content = new SentEmailContent();
                 $content->content = config('mail-tracker.log-content', true) ? $this->sanitizeHtml($content_text) : null;
 

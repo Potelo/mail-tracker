@@ -2,8 +2,8 @@
 
 namespace jdavidbakr\MailTracker;
 
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Event;
 use jdavidbakr\MailTracker\Model\SentEmail;
 use jdavidbakr\MailTracker\Events\EmailSentEvent;
 use jdavidbakr\MailTracker\Model\SentEmailContent;
@@ -233,8 +233,8 @@ class MailTracker implements \Swift_Events_SendListener
                     'meta'=>[],
                 ]);
 
-                $content_text = strlen($original_content) > config('mail-tracker.max_content_length', 65535)
-                    ? substr($original_content, 0, config('mail-tracker.max_content_length', 65535) - 3) . "..."
+                $content_text = Str::length($original_content) > config('mail-tracker.max_content_length', 65535)
+                    ? Str::substr($original_content, 0, config('mail-tracker.max_content_length', 65535) - 3) . "..."
                     : $original_content;
                 $content = new SentEmailContent();
                 $content->content = config('mail-tracker.log-content', true) ? $this->sanitizeHtml($content_text) : null;

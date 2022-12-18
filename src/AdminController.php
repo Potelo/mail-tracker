@@ -59,7 +59,7 @@ class AdminController extends Controller
         }
         $query->orderBy('created_at', 'desc');
 
-        $emails = $query->paginate(config('mail-tracker.emails-per-page'));
+        $emails = $query->cursorPaginate(config('mail-tracker.emails-per-page'));
 
         return \View('emailTrakingViews::index')->with('emails', $emails);
     }

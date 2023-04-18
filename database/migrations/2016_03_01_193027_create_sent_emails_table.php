@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
-use jdavidbakr\MailTracker\Model\SentEmail;
+use Illuminate\Database\Schema\Blueprint;
+use jdavidbakr\MailTracker\MailTracker;
 
 class CreateSentEmailsTable extends Migration
 {
@@ -13,7 +13,7 @@ class CreateSentEmailsTable extends Migration
      */
     public function up()
     {
-        Schema::connection((new SentEmail)->getConnectionName())->create(config('mail-tracker.table-name', 'sent_emails'), function (Blueprint $table) {
+       Schema::connection((new SentEmail)->getConnectionName())->create(config('mail-tracker.table-name', 'sent_emails'), function (Blueprint $table) {
             $table->bigIncrements('id');
 
             $table->char('hash',32)->unique();

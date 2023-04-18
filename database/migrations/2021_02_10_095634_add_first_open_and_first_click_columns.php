@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
-use jdavidbakr\MailTracker\Model\SentEmail;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use jdavidbakr\MailTracker\MailTracker;
 
 class AddFirstOpenAndFirstClickColumns extends Migration
 {

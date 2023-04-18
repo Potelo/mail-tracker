@@ -2,8 +2,10 @@
 
 namespace jdavidbakr\MailTracker;
 
-use Mail;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -39,7 +41,14 @@ class MailTrackerServiceProvider extends ServiceProvider
         $this->registerCommands();
 
         // Hook into the mailer
-        $this->registerSwiftPlugin();
+        Event::listen(MessageSending::class, function(MessageSending $event) {
+            $tracker = new MailTracker;
+            $tracker->messageSending($event);
+        });
+        Event::listen(MessageSent::class, function(MessageSent $mail) {
+            $tracker = new MailTracker;
+            $tracker->messageSent($mail);
+        });
 
         // Install the routes
         $this->installRoutes();
@@ -91,16 +100,6 @@ class MailTrackerServiceProvider extends ServiceProvider
                 Console\MigrateRecipients::class,
             ]);
         }
-    }
-
-    /**
-     * Register the Swift plugin
-     *
-     * @return void
-     */
-    protected function registerSwiftPlugin()
-    {
-        $this->app['mailer']->getSwiftMailer()->registerPlugin(new MailTracker());
     }
 
     /**

@@ -6,20 +6,10 @@ cache:
         - $HOME/.composer/cache/files
 
 php:
-    - 7.1
-    - 7.2
-    - 7.3
-    - 7.4
-    - 8.0
+    - 8.1
 
 env:
-    - LARAVEL_VERSION=7.x-dev TESTBENCH=5.x-dev
-    - LARAVEL_VERSION=8.x-dev TESTBENCH=6.x-dev
-
-jobs:
-    exclude:
-        - php: 7.2
-          env: LARAVEL_VERSION=8.x-dev TESTBENCH=6.x-dev
+    - LARAVEL_VERSION=10.x-dev TESTBENCH=8.x-dev
 
 before_install:
     - echo "memory_limit=-1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
@@ -33,8 +23,6 @@ install: travis_retry composer install --no-interaction --prefer-dist
 before_script: phpenv config-add ~/xdebug.ini
 
 script: vendor/bin/phpunit
-
-after_success: sh -c "if [ ! -z ${COVERAGE+x} ]; then travis_retry php vendor/bin/php-coveralls; fi"
 
 notifications:
     email: false

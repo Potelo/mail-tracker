@@ -3,15 +3,7 @@
 namespace jdavidbakr\MailTracker;
 
 use Illuminate\Http\Request;
-use Response;
-
-use App\Http\Requests;
 use Illuminate\Routing\Controller;
-
-use jdavidbakr\MailTracker\Model\SentEmail;
-use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
-
-use Mail;
 
 class AdminController extends Controller
 {
@@ -43,7 +35,7 @@ class AdminController extends Controller
         session(['mail-tracker-index-page' => request()->page]);
         $search = session('mail-tracker-index-search');
 
-        $query = SentEmail::query();
+        $query = MailTracker::sentEmailModel()->query();
 
         if($search) {
             $terms = explode(" ",$search);
@@ -71,7 +63,7 @@ class AdminController extends Controller
      */
     public function getShowEmail($id)
     {
-        $email = SentEmail::where('id', $id)->first();
+        $email = MailTracker::sentEmailModel()->newQuery()->where('id', $id)->first();
         return \View('emailTrakingViews::show')->with('email', $email);
     }
 
@@ -82,11 +74,13 @@ class AdminController extends Controller
      */
     public function getUrlDetail($id)
     {
-        $detalle = SentEmailUrlClicked::where('sent_email_id', $id)->get();
-        if (!$detalle) {
+        $details = MailTracker::sentEmailUrlClickedModel()->newQuery()->where('sent_email_id', $id)
+            ->with('email')
+            ->get();
+        if (!$details) {
             return back();
         }
-        return \View('emailTrakingViews::url_detail')->with('details', $detalle);
+        return \View('emailTrakingViews::url_detail')->with('details', $details);
     }
 
     /**
@@ -96,10 +90,10 @@ class AdminController extends Controller
      */
     public function getSMTPDetail($id)
     {
-        $detalle = SentEmail::find($id);
-        if (!$detalle) {
+        $details = MailTracker::sentEmailModel()->newQuery()->find($id);
+        if (!$details) {
             return back();
         }
-        return \View('emailTrakingViews::smtp_detail')->with('details', $detalle);
+        return \View('emailTrakingViews::smtp_detail')->with('details', $details);
     }
 }

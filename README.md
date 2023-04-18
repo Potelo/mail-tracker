@@ -7,7 +7,7 @@
 
 MailTracker will hook into all outgoing emails from Laravel and inject a tracking code into it. It will also store the rendered email in the database. There is also an interface to view sent emails.
 
-## NOTE: For Laravel < 5.3.23 you MUST use version 2.0 or earlier.
+## NOTE: If you are using Laravel 9.x you MUST be on version 9.6.0 or higher.
 
 ## Upgrade from 4.x to 5.x
 
@@ -30,14 +30,16 @@ There was a breaking change with the update to version 3.0, specifically regardi
 First, upgrade to version 2.2 by running:
 
 ```bash
-$ composer require jdavidbakr/mail-tracker ~2.2
+composer require jdavidbakr/mail-tracker ~2.2
 ```
 
 If you are updating from an earlier version, you will need to update the config file and run the new migrations. For best results, make a backup copy of config/mail-tracker.php and the views in resources/views/vendor/emailTrackingViews (if they exists) to restore any values you have customized, then delete that file and run
 
 ```bash
-$ php artisan vendor:publish
-$ php artisan migrate
+php artisan vendor:publish
+```
+```bash
+php artisan migrate
 ```
 
 Also note that the migration for the `sent_emails_url_clicked` table changed with version 2.1.13. The change is that the URL column is now a `TEXT` field to allow for longer URLs. If you have an old system you may want to manually change that column; there is no migration included to perform that update.
@@ -47,19 +49,19 @@ Also note that the migration for the `sent_emails_url_clicked` table changed wit
 Via Composer
 
 ```bash
-$ composer require jdavidbakr/mail-tracker
+composer require jdavidbakr/mail-tracker
 ```
 
 Publish the config file and migration
 
 ```bash
-$ php artisan vendor:publish --provider="jdavidbakr\MailTracker\MailTrackerServiceProvider"
+php artisan vendor:publish --provider="jdavidbakr\MailTracker\MailTrackerServiceProvider"
 ```
 
 Run the migration
 
 ```bash
-$ php artisan migrate
+php artisan migrate
 ```
 
 Note: If you would like to use a different connection to store your models,
@@ -99,6 +101,48 @@ If you do not wish to have an email tracked, then you can add the `X-No-Track` h
 });
 ```
 
+### Storing content of mails in filesystem
+
+By default, the content of an e-mail is stored in the `content` column in the database so that the e-mail can be viewed after it has been sent. 
+If a lot of emails are sent, this can consume a lot of memory and slow down the database overall. It is possible to specify in the configuration that the content should be saved to a file in the file system.
+
+````php
+    'log-content-strategy' => 'filesystem',
+    'tracker-filesystem' => null
+    'tracker-filesystem-folder' => 'mail-tracker',
+````
+To use the filesystem you need to change the `log-content-strategy` from `database` to `filesystem`. 
+You can specify the disk with `tracker-filesystem` and the folder it should store the file in with `tracker-filesystem-folder`.
+
+### Overriding models
+
+In some cases you want to override the built-in models. You can do so easily for example in you `AppServiceProvider` with
+
+```php
+MailTracker::useSentEmailModel(YourOwnSentEmailModel::class);
+MailTracker::useSentEmailUrlClickedModel(YourOwnSentEmailUrlClickedModel::class);
+```
+
+Your model should implement to `SentEmailModel` or `SentEmailUrlClickedModel` interface. This package provides traits to easily implement your own models but not have to reimplement or copy existing code.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use jdavidbakr\MailTracker\Concerns\IsSentEmailModel;
+use jdavidbakr\MailTracker\Contracts\SentEmailModel;
+
+class OwnEmailSentModel extends Model implements SentEmailModel {
+    use IsSentEmailModel;
+
+    protected static $unguarded = true;
+
+    protected $casts = [
+        'meta' => 'collection',
+        'opened_at' => 'datetime',
+        'clicked_at' => 'datetime',
+    ];
+}
+```
+
 ## Note on dev testing
 
 Several people have reported the tracking pixel not working while they were testing. What is happening with the tracking pixel is that the email client is connecting to your website to log the view. In order for this to happen, images have to be visible in the client, and the client has to be able to connect to your server.
@@ -119,6 +163,7 @@ You may want to do additional processing on these events, so an event is fired i
 -   jdavidbakr\MailTracker\Events\LinkClickedEvent
     - Public attribute `sent_email` contains the `SentEmail` model
     - Public attribute `ip_address` contains the IP address that was used to trigger the event
+    - Public attribute `link_url` contains the clicked URL
 
 If you are using the Amazon SNS notification system, these events are fired so you can do additional processing.
 

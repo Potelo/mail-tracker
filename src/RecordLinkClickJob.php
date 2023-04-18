@@ -8,10 +8,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use jdavidbakr\MailTracker\Model\SentEmail;
 use jdavidbakr\MailTracker\Events\LinkClickedEvent;
-use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
-use jdavidbakr\MailTracker\Events\EmailDeliveredEvent;
 
 class RecordLinkClickJob implements ShouldQueue
 {
@@ -44,17 +41,21 @@ class RecordLinkClickJob implements ShouldQueue
 
         $this->sentEmail->clicks++;
         $this->sentEmail->save();
-        $url_clicked = SentEmailUrlClicked::where('url', $this->url)->where('hash', $this->sentEmail->hash)->first();
+        $url_clicked = MailTracker::sentEmailUrlClickedModel()->newQuery()->where('url', $this->url)->where('hash', $this->sentEmail->hash)->first();
         if ($url_clicked) {
             $url_clicked->clicks++;
             $url_clicked->save();
         } else {
-            $url_clicked = SentEmailUrlClicked::create([
+            $url_clicked = MailTracker::sentEmailUrlClickedModel()->newQuery()->create([
                 'sent_email_id' => $this->sentEmail->id,
                 'url' => $this->url,
                 'hash' => $this->sentEmail->hash,
             ]);
         }
-        Event::dispatch(new LinkClickedEvent($this->sentEmail, $this->ipAddress));
+        Event::dispatch(new LinkClickedEvent(
+            $this->sentEmail,
+            $this->ipAddress,
+            $this->url,
+        ));
     }
 }

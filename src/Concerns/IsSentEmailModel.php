@@ -149,12 +149,6 @@ trait IsSentEmailModel
 
     public function fillContent(string $originalHtml, string $hash)
     {
-        $logContent = config('mail-tracker.log-content', true);
-
-        if(!$logContent) {
-            return;
-        }
-
         $logContentStrategy = config('mail-tracker.log-content-strategy', 'database');
 
         if(!in_array($logContentStrategy, ['database', 'filesystem'])) {
@@ -189,6 +183,6 @@ trait IsSentEmailModel
                 : $originalHtml;
         }
 
-        $this->content = $databaseContent;
+        return $databaseContent;
     }
 }

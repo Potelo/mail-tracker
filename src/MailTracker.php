@@ -369,18 +369,14 @@ class MailTracker
                     'message_id' => Str::uuid(),
                     'mailable'=> $mailable,
                 ]), function(Model|SentEmailModel $sentEmail) use ($original_html, $hash) {
-                    $sentEmail->fillContent($original_html, $hash);
+                    $databaseContent = $sentEmail->fillContent($original_html, $hash);
+
+                    $content = new SentEmailContent();
+                    $content->content = config('mail-tracker.log-content', true) ? $this->sanitizeHtml($databaseContent) : null;
 
                     $sentEmail->save();
+                    $sentEmail->contentRelation()->save($content);
                 });
-
-                $content_text = Str::length($original_content) > config('mail-tracker.max_content_length', 65535)
-                    ? Str::substr($original_content, 0, config('mail-tracker.max_content_length', 65535) - 3) . "..."
-                    : $original_content;
-                $content = new SentEmailContent();
-                $content->content = config('mail-tracker.log-content', true) ? $this->sanitizeHtml($content_text) : null;
-
-                $tracker->contentRelation()->save($content);
 
                 Event::dispatch(new EmailSentEvent($tracker));
             }

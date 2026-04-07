@@ -42,19 +42,14 @@ class RecordLinkClickJob implements ShouldQueue
 
     public function handle()
     {
-        $this->sentEmail->clicks++;
-        $this->sentEmail->save();
-        $url_clicked = MailTracker::sentEmailUrlClickedModel()->newQuery()->where('url', $this->url)->where('hash', $this->sentEmail->hash)->first();
-        if ($url_clicked) {
-            $url_clicked->clicks++;
-            $url_clicked->save();
-        } else {
-            $url_clicked = MailTracker::sentEmailUrlClickedModel()->newQuery()->create([
-                'sent_email_id' => $this->sentEmail->id,
-                'url' => $this->url,
-                'hash' => $this->sentEmail->hash,
-            ]);
-        }
+        $this->sentEmail->increment('clicks');
+
+        $url_clicked = MailTracker::sentEmailUrlClickedModel()->newQuery()->firstOrCreate(
+            ['url' => $this->url, 'hash' => $this->sentEmail->hash],
+            ['sent_email_id' => $this->sentEmail->id]
+        );
+        $url_clicked->increment('clicks');
+
         Event::dispatch(new LinkClickedEvent(
             $this->sentEmail,
             $this->ipAddress,

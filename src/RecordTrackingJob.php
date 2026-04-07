@@ -40,8 +40,7 @@ class RecordTrackingJob implements ShouldQueue
 
     public function handle()
     {
-        $this->sentEmail->opens++;
-        $this->sentEmail->save();
+        $this->sentEmail->increment('opens');
         Event::dispatch(new ViewEmailEvent($this->sentEmail, $this->ipAddress));
     }
 }

@@ -110,5 +110,12 @@ return [
      */
     'fallback-event-listeners' => [
         \jdavidbakr\MailTracker\Listener\DomainExistsInContentListener::class,
-    ]
+    ],
+
+    /**
+     * Custom table names (optional)
+     */
+    'table-name'              => 'sent_emails',
+    'url-clicked-table-name'  => 'sent_emails_url_clicked',
+    'content-table-name'      => 'sent_emails_content',
 ];

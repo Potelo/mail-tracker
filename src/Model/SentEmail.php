@@ -18,6 +18,7 @@ use jdavidbakr\MailTracker\Contracts\SentEmailModel;
  * @property int $clicks
  * @property int|null $message_id
  * @property Collection|null $meta
+ * @property string|null $mailable
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $clicked_at
@@ -42,6 +43,7 @@ class SentEmail extends Model implements SentEmailModel
         'meta',
         'opened_at',
         'clicked_at',
+        'mailable',
     ];
 
     protected $casts = [
@@ -50,21 +52,39 @@ class SentEmail extends Model implements SentEmailModel
         'clicked_at' => 'datetime',
     ];
 
-    protected $appends = [
-        'domains_in_context'
-    ];
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
 
-    public function getDomainsInContextAttribute(){
+        $this->table = config('mail-tracker.table-name', 'sent_emails');
+    }
+
+    public function getDomainsInContextAttribute()
+    {
         preg_match_all("/(<a[^>]*href=[\"])([^\"]*)/", $this->content, $matches);
-        if ( ! isset($matches[2]) ) return [];
+        if (!isset($matches[2])) return [];
         $domains = [];
-        foreach($matches[2] as $url){
+        foreach ($matches[2] as $url) {
             $domain = parse_url($url, PHP_URL_HOST);
-            if ( ! in_array($domain, $domains) ){
+            if (!in_array($domain, $domains)) {
                 $domains[] = $domain;
             }
         }
 
         return $domains;
+    }
+
+    public function contentRelation()
+    {
+        return $this->hasOne(SentEmailContent::class, 'sent_email_id');
+    }
+
+    public function getContentAttribute()
+    {
+        if ($this->relationLoaded('contentRelation') || !$this->exists) {
+            return $this->contentRelation?->content;
+        }
+
+        return $this->contentRelation?->content;
     }
 }

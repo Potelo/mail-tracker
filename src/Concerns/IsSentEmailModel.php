@@ -90,27 +90,6 @@ trait IsSentEmailModel
     }
 
     /**
-     * Get content according to log-content-strategy.
-     * @return string|null
-     */
-    public function getContentAttribute(): ?string
-    {
-        if ($content = $this->attributes['content']) {
-            return $content;
-        }
-        if ($this->meta?->has('content_file_path')) {
-            if ($contentFilePath = $this->meta->get('content_file_path')) {
-                try {
-                    return Storage::disk(config('mail-tracker.tracker-filesystem'))->get($contentFilePath);
-                } catch (FileNotFoundException $e) {
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
      * Returns a collection of all headers requested from our stored header info
      *
      * @return \Illuminate\Support\Collection
@@ -151,16 +130,10 @@ trait IsSentEmailModel
 
     public function fillContent(string $originalHtml, string $hash)
     {
-        $logContent = config('mail-tracker.log-content', true);
-
-        if(!$logContent) {
-            return;
-        }
-
         $logContentStrategy = config('mail-tracker.log-content-strategy', 'database');
 
         if(!in_array($logContentStrategy, ['database', 'filesystem'])) {
-            return;
+            return null;
         }
 
         $databaseContent = null;
@@ -191,6 +164,6 @@ trait IsSentEmailModel
                 : $originalHtml;
         }
 
-        $this->content = $databaseContent;
+        return $databaseContent;
     }
 }

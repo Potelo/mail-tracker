@@ -14,7 +14,7 @@ class AddFirstOpenAndFirstClickColumns extends Migration
      */
     public function up()
     {
-        Schema::connection(MailTracker::sentEmailModel()->getConnectionName())->table('sent_emails', function (Blueprint $table) {
+        Schema::connection(MailTracker::sentEmailModel()->getConnectionName())->table(config('mail-tracker.table-name', 'sent_emails'), function (Blueprint $table) {
             $table->datetime('clicked_at')->nullable()->after('updated_at');
             $table->datetime('opened_at')->nullable()->after('updated_at');
         });
@@ -27,7 +27,7 @@ class AddFirstOpenAndFirstClickColumns extends Migration
      */
     public function down()
     {
-        Schema::connection(MailTracker::sentEmailModel()->getConnectionName())->table('sent_emails', function (Blueprint $table) {
+        Schema::connection(MailTracker::sentEmailModel()->getConnectionName())->table(config('mail-tracker.table-name', 'sent_emails'), function (Blueprint $table) {
             $table->dropColumn('opened_at');
             $table->dropColumn('clicked_at');
         });

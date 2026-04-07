@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use jdavidbakr\MailTracker\Contracts\SentEmailModel;
 use jdavidbakr\MailTracker\Events\EmailSentEvent;
 use jdavidbakr\MailTracker\Model\SentEmail;
+use jdavidbakr\MailTracker\Model\SentEmailContent;
 use jdavidbakr\MailTracker\Model\SentEmailUrlClicked;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Part\Multipart\AlternativePart;
@@ -225,6 +226,35 @@ class MailTracker
     }
 
     /**
+     * @param $buffer
+     * @return string|string[]|null
+     */
+    protected function sanitizeHtml($html)
+    {
+        if (is_null($html)) {
+            return null;
+        }
+
+        $search = array(
+            '/\>[^\S ]+/s',     // strip whitespaces after tags, except space
+            '/[^\S ]+\</s',     // strip whitespaces before tags, except space
+            '/(\s)+/s',         // shorten multiple whitespace sequences
+            '/<!--(.|\s)*?-->/' // Remove HTML comments
+        );
+
+        $replace = array(
+            '>',
+            '<',
+            '\\1',
+            ''
+        );
+
+        $html = preg_replace($search, $replace, $html);
+
+        return $html;
+    }
+
+    /**
      * Create the trackers
      *
      * @param  Email $message
@@ -304,6 +334,11 @@ class MailTracker
                     }
                 }
 
+                $mailable = null;
+                if (isset($message->mailable)) {
+                    $mailable = $message->mailable;
+                }
+
                 /** @var SentEmail $tracker */
                 $tracker = tap(MailTracker::sentEmailModel([
                     'hash' => $hash,
@@ -316,10 +351,15 @@ class MailTracker
                     'opens' => 0,
                     'clicks' => 0,
                     'message_id' => Str::uuid(),
+                    'mailable' => $mailable,
                 ]), function(Model|SentEmailModel $sentEmail) use ($original_html, $hash) {
-                    $sentEmail->fillContent($original_html, $hash);
+                    $databaseContent = $sentEmail->fillContent($original_html, $hash);
+
+                    $content = new SentEmailContent();
+                    $content->content = config('mail-tracker.log-content', true) ? $this->sanitizeHtml($databaseContent) : null;
 
                     $sentEmail->save();
+                    $sentEmail->contentRelation()->save($content);
                 });
 
                 Event::dispatch(new EmailSentEvent($tracker));

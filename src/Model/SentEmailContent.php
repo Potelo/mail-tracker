@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class SentEmailContent extends Model
 {
+    protected $fillable = [
+        'sent_email_id',
+        'content',
+    ];
+
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);

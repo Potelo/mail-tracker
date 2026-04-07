@@ -19,7 +19,7 @@ class CreateSentEmailsUrlClickedTable extends Migration
             $table->integer('sent_email_id')->unsigned()->index();
             $table->text('url')->nullable();
             $table->char('hash', 32);
-            $table->integer('clicks')->default('1');
+            $table->integer('clicks')->default(0);
             $table->timestamps();
         });
     }

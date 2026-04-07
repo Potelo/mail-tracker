@@ -23,12 +23,12 @@ class CreateSentEmailsTable extends Migration
             $table->string('recipient_name')->nullable();
             $table->string('recipient_email')->nullable();
             $table->string('subject')->nullable();
-            $table->integer('opens')->nullable();
-            $table->integer('clicks')->nullable();
+            $table->integer('opens')->default(0);
+            $table->integer('clicks')->default(0);
             $table->integer('user_id')->index()->nullable();
             $table->string('mailable')->nullable();
             $table->string('message_id')->nullable();
-            $table->text('meta');
+            $table->text('meta')->nullable();
             $table->timestamps();
 
             $table->index(['created_at', 'mailable']);

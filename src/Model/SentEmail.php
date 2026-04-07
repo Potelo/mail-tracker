@@ -36,7 +36,6 @@ class SentEmail extends Model implements SentEmailModel
         'recipient_name',
         'recipient_email',
         'subject',
-        'content',
         'opens',
         'clicks',
         'message_id',
@@ -81,10 +80,22 @@ class SentEmail extends Model implements SentEmailModel
 
     public function getContentAttribute()
     {
-        if ($this->relationLoaded('contentRelation') || !$this->exists) {
-            return $this->contentRelation?->content;
+        $content = $this->contentRelation?->content;
+
+        if ($content) {
+            return $content;
         }
 
-        return $this->contentRelation?->content;
+        // Fallback to filesystem strategy
+        if ($this->meta?->has('content_file_path')) {
+            $contentFilePath = $this->meta->get('content_file_path');
+            try {
+                return \Illuminate\Support\Facades\Storage::disk(config('mail-tracker.tracker-filesystem'))->get($contentFilePath);
+            } catch (\Illuminate\Contracts\Filesystem\FileNotFoundException $e) {
+                return null;
+            }
+        }
+
+        return null;
     }
 }

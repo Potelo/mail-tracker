@@ -162,7 +162,6 @@ class MailTrackerTest extends SetUpTest
             'sender_email'    => 'from@johndoe.com',
             'recipient_name'  => $name,
             'recipient_email' => $email,
-            'content'         => $content,
         ]);
     }
 
@@ -387,6 +386,8 @@ class MailTrackerTest extends SetUpTest
         $redirect = 'http://' . Str::random(15) . '.com/' . Str::random(10) . '/' . Str::random(10) . '/' . rand(0, 100) . '/' . rand(0, 100) . '?page=' . rand(0, 100) . '&x=' . Str::random(32);
         $track    = MailTracker::sentEmailModel()->newQuery()->create([
             'hash'    => Str::random(32),
+        ]);
+        $track->contentRelation()->create([
             'content' => 'Hello, visit my website <a href="' . $redirect . '">' . $redirect . '</a>',
         ]);
         $url      = URL::signedRoute('mailTracker_n', [
@@ -439,6 +440,8 @@ class MailTrackerTest extends SetUpTest
     {
         $track = MailTracker::sentEmailModel()->newQuery()->create([
             'hash'    => Str::random(32),
+        ]);
+        $track->contentRelation()->create([
             'content' => 'This is some content with a link to <a href="https://goodwebsite.com/test.html">Good website</a>',
         ]);
 
@@ -456,6 +459,8 @@ class MailTrackerTest extends SetUpTest
     {
         $track = MailTracker::sentEmailModel()->newQuery()->create([
             'hash'    => Str::random(32),
+        ]);
+        $track->contentRelation()->create([
             'content' => 'This is some content with a link to <a href="https://goodwebsite.com">Good website</a>',
         ]);
 
@@ -1209,12 +1214,10 @@ class MailTrackerTest extends SetUpTest
             'sender_email'    => 'from@johndoe.com',
             'recipient_name'  => $name,
             'recipient_email' => $email,
-            'content'         => null,
         ]);
 
         $tracker = MailTracker::sentEmailModel()->newQuery()->where('hash', '=', 'random-hash')->first();
         $this->assertNotNull($tracker);
-        $this->assertEquals($content, $tracker->content);
         $folder       = config('mail-tracker.tracker-filesystem-folder', 'mail-tracker');
         $filePath     = $tracker->meta->get('content_file_path');
         $expectedPath = "{$folder}/random-hash.html";

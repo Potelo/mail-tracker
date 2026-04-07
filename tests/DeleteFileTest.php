@@ -30,7 +30,6 @@ class DeleteFileTest extends SetUpTest
             'sender_email' => 'from@johndoe.com',
             'recipient_name' => 'name',
             'recipient_email' => 'email@test.com',
-            'content' => null,
             'meta' => collect(['content_file_path' => $filePath])
         ]);
 

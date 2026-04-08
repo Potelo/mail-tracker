@@ -19,6 +19,7 @@ class RecordTrackingJob implements ShouldQueue
 
     public $sentEmail;
     public $ipAddress;
+    public $openedAt = null;
 
     /**
      * The maximum number of unhandled exceptions to allow before failing.
@@ -27,10 +28,11 @@ class RecordTrackingJob implements ShouldQueue
      */
     public $maxExceptions = 3;
 
-    public function __construct($sentEmail, $ipAddress)
+    public function __construct($sentEmail, $ipAddress, $openedAt)
     {
         $this->sentEmail = $sentEmail;
         $this->ipAddress = $ipAddress;
+        $this->openedAt = $openedAt;
     }
 
     public function retryUntil()
@@ -42,5 +44,10 @@ class RecordTrackingJob implements ShouldQueue
     {
         $this->sentEmail->increment('opens');
         Event::dispatch(new ViewEmailEvent($this->sentEmail, $this->ipAddress));
+
+        if (!empty($this->openedAt) && !$this->sentEmail->opened_at) {
+            $this->sentEmail->opened_at = $this->openedAt;
+            $this->sentEmail->save();
+        }
     }
 }

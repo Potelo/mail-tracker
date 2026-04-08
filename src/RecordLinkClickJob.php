@@ -20,6 +20,7 @@ class RecordLinkClickJob implements ShouldQueue
     public $sentEmail;
     public $url;
     public $ipAddress;
+    public $clickedAt = null;
 
     /**
      * The maximum number of unhandled exceptions to allow before failing.
@@ -33,11 +34,12 @@ class RecordLinkClickJob implements ShouldQueue
         return now()->addDays(5);
     }
 
-    public function __construct($sentEmail, $url, $ipAddress)
+    public function __construct($sentEmail, $url, $ipAddress, $clickedAt)
     {
         $this->sentEmail = $sentEmail;
         $this->url = $url;
         $this->ipAddress = $ipAddress;
+        $this->clickedAt = $clickedAt;
     }
 
     public function handle()
@@ -49,6 +51,18 @@ class RecordLinkClickJob implements ShouldQueue
             ['sent_email_id' => $this->sentEmail->id, 'clicks' => 0]
         );
         $url_clicked->increment('clicks');
+
+        if (!empty(($this->clickedAt))) {       
+            if (config('mail-tracker.inject-pixel') && !$this->sentEmail->opened_at) {
+                $this->sentEmail->opened_at = $this->clickedAt;
+            }
+
+            if (!$this->sentEmail->clicked_at) {
+                $this->sentEmail->clicked_at = $this->clickedAt;
+            }
+            
+            $this->sentEmail->save();
+        }
 
         Event::dispatch(new LinkClickedEvent(
             $this->sentEmail,

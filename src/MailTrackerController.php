@@ -30,12 +30,8 @@ class MailTrackerController extends Controller
             Event::dispatch($event);
 
             if (!$event->skip) {
-                RecordTrackingJob::dispatch($tracker, request()->ip())
+                RecordTrackingJob::dispatch($tracker, request()->ip(), now())
                     ->onQueue(config('mail-tracker.tracker-queue'));
-                if (!$tracker->opened_at) {
-                    $tracker->opened_at = now();
-                    $tracker->save();
-                }
             }
         }
 
@@ -56,19 +52,8 @@ class MailTrackerController extends Controller
 
             // If the event does not skip the tracking then we can log that the link was clicked
             if (!$event->skip) {
-                RecordLinkClickJob::dispatch($tracker, $url, request()->ip())
+                RecordLinkClickJob::dispatch($tracker, $url, request()->ip(), now())
                     ->onQueue(config('mail-tracker.tracker-queue'));
-
-                // If no opened at but has a clicked event then we can assume that it was in fact opened, the tracking pixel may have been blocked
-                if (config('mail-tracker.inject-pixel') && !$tracker->opened_at) {
-                    $tracker->opened_at = now();
-                }
-
-                if (!$tracker->clicked_at) {
-                    $tracker->clicked_at = now();
-                }
-
-                $tracker->save();
             }
         }
 

@@ -490,6 +490,34 @@ class MailTrackerTest extends SetUpTest
     /**
      * @test
      */
+    public function testLinkComEspacosESanitizadoAntesDeGerarTracking()
+    {
+        $tracker = new MailTracker();
+        $method = new \ReflectionMethod($tracker, 'injectLinkTracker');
+
+        $result = $method->invoke($tracker, '<a href="https://example.com/path with spaces">Click</a>', 'test-hash');
+
+        $this->assertStringContainsString('/n?', $result);
+        $this->assertStringContainsString(urlencode('https://example.com/path%20with%20spaces'), $result);
+    }
+
+    /**
+     * @test
+     */
+    public function testLinkComUrlInvalidaNaoEReescritoParaTracking()
+    {
+        $tracker = new MailTracker();
+        $method = new \ReflectionMethod($tracker, 'injectLinkTracker');
+
+        $result = $method->invoke($tracker, '<a href="not-a-valid-url">Click</a>', 'test-hash');
+
+        $this->assertStringNotContainsString('/n?', $result);
+        $this->assertEquals('<a href="not-a-valid-url">Click</a>', $result);
+    }
+
+    /**
+     * @test
+     */
     public function it_retrieves_the_message_id_from_laravel_mailer()
     {
         $sent    = MailTracker::sentEmailModel()->newQuery()->create([

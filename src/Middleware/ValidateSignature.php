@@ -14,8 +14,8 @@ class ValidateSignature extends Middleware
 {
     public function handle($request, Closure $next, ...$args)
     {
-        $hash = $request->get('h');
-        $url  = $request->get('l');
+        $hash = $request->query('h');
+        $url  = $request->query('l');
 
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
             throw new BadUrlLink('Mail hash: ' . $hash . ', URL: ' . $url);

@@ -213,7 +213,12 @@ class MailTracker
         if (empty($matches[2])) {
             $url = app()->make('url')->to('/');
         } else {
-            $url = str_replace('&amp;', '&', $matches[2]);
+            $url = str_replace('&amp;', '&', trim($matches[2]));
+            $url = str_replace(' ', '%20', $url);
+        }
+
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return $matches[1] . $matches[2];
         }
 
         return $matches[1].URL::signedRoute(

@@ -23,7 +23,8 @@ class RecordTrackingJobTest extends TestCase
         $track = MailTracker::sentEmailModel()->newQuery()->create([
                 'hash' => Str::random(32),
             ]);
-        $job = new RecordTrackingJob($track, '127.0.0.1');
+        $openedAt = now()->subMinute()->startOfSecond();
+        $job = new RecordTrackingJob($track, '127.0.0.1', $openedAt);
 
         $job->handle();
 
@@ -34,6 +35,7 @@ class RecordTrackingJobTest extends TestCase
         $this->assertDatabaseHas('sent_emails', [
                 'id' => $track->id,
                 'opens' => 1,
+                'opened_at' => $openedAt->format('Y-m-d H:i:s'),
             ]);
     }
 }

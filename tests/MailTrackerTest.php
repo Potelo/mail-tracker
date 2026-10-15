@@ -352,13 +352,9 @@ class MailTrackerTest extends TestCase
         Bus::assertDispatched(RecordTrackingJob::class, function ($e) use ($track) {
             return $e->sentEmail->id == $track->id &&
                 $e->ipAddress == '127.0.0.1' &&
+                $e->openedAt->equalTo(now()) &&
                 $e->queue == 'alt-queue';
         });
-
-        $this->assertDatabaseHas('sent_emails', [
-            'id'        => $track->id,
-            'opened_at' => now()->format("Y-m-d H:i:s"),
-        ]);
     }
 
     #[Test]
@@ -414,13 +410,9 @@ class MailTrackerTest extends TestCase
             return $job->sentEmail->id == $track->id &&
                 $job->url == $redirect &&
                 $job->ipAddress == '127.0.0.1' &&
+                $job->clickedAt->equalTo(now()) &&
                 $job->queue == 'alt-queue';
         });
-        $this->assertDatabaseHas('sent_emails', [
-            'id'         => $track->id,
-            'clicked_at' => now()->format("Y-m-d H:i:s"),
-            'opened_at'  => now()->format("Y-m-d H:i:s"),
-        ]);
     }
 
     #[Test]

@@ -24,7 +24,8 @@ class RecordLinkClickJobTest extends TestCase
         $clicks = $track->clicks;
         $clicks++;
         $redirect = 'http://'.Str::random(15).'.com/'.Str::random(10).'/'.Str::random(10).'/'.rand(0, 100).'/'.rand(0, 100).'?page='.rand(0, 100).'&x='.Str::random(32);
-        $job = new RecordLinkClickJob($track, $redirect, '127.0.0.1');
+        $clickedAt = now()->subMinute()->startOfSecond();
+        $job = new RecordLinkClickJob($track, $redirect, '127.0.0.1', $clickedAt);
 
         $job->handle();
 
@@ -36,6 +37,10 @@ class RecordLinkClickJobTest extends TestCase
         $this->assertDatabaseHas('sent_emails_url_clicked', [
                 'url' => $redirect,
                 'clicks' => 1,
+            ]);
+        $this->assertDatabaseHas('sent_emails', [
+                'id' => $track->id,
+                'clicked_at' => $clickedAt->format('Y-m-d H:i:s'),
             ]);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use jdavidbakr\MailTracker\Events\ValidActionEvent;
 use jdavidbakr\MailTracker\MailTracker;
+use PHPUnit\Framework\Attributes\Test;
 
 class SkipListener
 {
@@ -25,8 +26,9 @@ class ContinueListener
     }
 }
 
-class MailTrackerControllerTest extends SetUpTest
+class MailTrackerControllerTest extends TestCase
 {
+    #[Test]
     public function testReadTrackingIsSkipped()
     {
         Event::listen(
@@ -49,6 +51,7 @@ class MailTrackerControllerTest extends SetUpTest
         $this->assertNull($email->opened_at);
     }
 
+    #[Test]
     public function testReadTrackingIsNotSkipped()
     {
         Event::listen(
@@ -71,6 +74,7 @@ class MailTrackerControllerTest extends SetUpTest
         $this->assertNotNull($email->opened_at);
     }
 
+    #[Test]
     public function testLinkTrackingIsSkipped()
     {
         Event::listen(
@@ -89,7 +93,7 @@ class MailTrackerControllerTest extends SetUpTest
         $redirect = 'http://' . Str::random(15) . '.com/' . Str::random(10) . '/' . Str::random(10) . '/' . rand(0, 100) . '/' . rand(0, 100) . '?page=' . rand(0, 100) . '&x=' . Str::random(32);
 
         $this->get(URL::signedRoute('mailTracker_n', [
-            'n' => $redirect,
+            'l' => $redirect,
             'h' => $email->hash,
         ]));
 
@@ -99,6 +103,7 @@ class MailTrackerControllerTest extends SetUpTest
         $this->assertNull($email->clicked_at);
     }
 
+    #[Test]
     public function testLinkTrackingIsNotSkipped()
     {
         Event::listen(

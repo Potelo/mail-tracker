@@ -8,12 +8,11 @@ use jdavidbakr\MailTracker\Events\PermanentBouncedMessageEvent;
 use jdavidbakr\MailTracker\Events\TransientBouncedMessageEvent;
 use jdavidbakr\MailTracker\MailTracker;
 use jdavidbakr\MailTracker\RecordBounceJob;
+use PHPUnit\Framework\Attributes\Test;
 
-class RecordBounceJobTest extends SetUpTest
+class RecordBounceJobTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_permanent_bounce()
     {
         Event::fake();
@@ -55,9 +54,7 @@ class RecordBounceJobTest extends SetUpTest
         });
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_transient_bounce()
     {
         Event::fake();
@@ -104,9 +101,7 @@ class RecordBounceJobTest extends SetUpTest
         });
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_transient_bounce_without_diagnostic_code()
     {
         Event::fake();

@@ -12,12 +12,11 @@ use jdavidbakr\MailTracker\RecordComplaintJob;
 use jdavidbakr\MailTracker\RecordLinkClickJob;
 use jdavidbakr\MailTracker\Events\ViewEmailEvent;
 use jdavidbakr\MailTracker\Events\LinkClickedEvent;
+use PHPUnit\Framework\Attributes\Test;
 
-class RecordTrackingJobTest extends SetUpTest
+class RecordTrackingJobTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_records_views()
     {
         Event::fake();

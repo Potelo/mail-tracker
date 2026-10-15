@@ -10,12 +10,11 @@ use jdavidbakr\MailTracker\RecordDeliveryJob;
 use jdavidbakr\MailTracker\RecordComplaintJob;
 use jdavidbakr\MailTracker\Events\EmailDeliveredEvent;
 use jdavidbakr\MailTracker\Events\ComplaintMessageEvent;
+use PHPUnit\Framework\Attributes\Test;
 
-class RecordDeliveryJobTest extends SetUpTest
+class RecordDeliveryJobTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_marks_the_email_as_unsuccessful()
     {
         Event::fake();
@@ -53,9 +52,7 @@ class RecordDeliveryJobTest extends SetUpTest
         });
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_this_situation()
     {
         $message = (object)[

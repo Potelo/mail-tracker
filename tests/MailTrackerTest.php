@@ -31,16 +31,22 @@ use jdavidbakr\MailTracker\RecordDeliveryJob;
 use jdavidbakr\MailTracker\RecordLinkClickJob;
 use jdavidbakr\MailTracker\RecordTrackingJob;
 use Mockery;
-use Orchestra\Testbench\Exceptions\Handler;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Header\Headers;
 use Symfony\Component\Mime\Part\AbstractPart;
 use Throwable;
 
-class IgnoreExceptions extends Handler
+class IgnoreExceptions implements ExceptionHandler
 {
     public function __construct()
     {
+    }
+
+    public function shouldReport(Throwable $e): bool
+    {
+        return true;
     }
 
     public function report(Throwable $e)
@@ -48,6 +54,11 @@ class IgnoreExceptions extends Handler
     }
 
     public function render($request, Throwable $e)
+    {
+        throw $e;
+    }
+
+    public function renderForConsole($output, Throwable $e)
     {
         throw $e;
     }
@@ -61,13 +72,14 @@ class TestMailable extends Mailable
     }
 }
 
-class MailTrackerTest extends SetUpTest
+class MailTrackerTest extends TestCase
 {
     protected function disableExceptionHandling()
     {
-        $this->app->instance(ExceptionHandler::class, new IgnoreExceptions);
+        $this->app->instance(ExceptionHandler::class, new IgnoreExceptions());
     }
 
+    #[Test]
     public function testSendMessage()
     {
         // Create an old email to purge
@@ -137,6 +149,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertNull($old_url->fresh());
     }
 
+    #[Test]
     public function testSendMessageWithMailRaw()
     {
         $faker   = Factory::create();
@@ -165,6 +178,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
+    #[Test]
     public function testSendMessageWithMultiPart()
     {
         $faker = Factory::create();
@@ -187,6 +201,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
+    #[Test]
     public function testSendMessageWithMixedPart()
     {
         $faker = Factory::create();
@@ -210,6 +225,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
+    #[Test]
     public function testSendMessageWithRelatedPart()
     {
         $faker = Factory::create();
@@ -244,6 +260,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
+    #[Test]
     public function testSendMessageWithAttachment()
     {
         $faker = Factory::create();
@@ -270,9 +287,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_doesnt_track_if_told_not_to()
     {
         $faker        = Factory::create();
@@ -318,9 +333,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function testPing()
     {
         Carbon::setTestNow(now());
@@ -348,9 +361,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_leaves_existing_opened_at_value()
     {
         Carbon::setTestNow(now());
@@ -377,6 +388,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
+    #[Test]
     public function testLink()
     {
         Carbon::setTestNow(now());
@@ -411,9 +423,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_redirects_to_fallback_if_the_sent_email_does_not_exists()
     {
         MailTracker::sentEmailModel()->newQuery()->create([
@@ -433,9 +443,7 @@ class MailTrackerTest extends SetUpTest
             ->assertRedirect('/home');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_redirects_to_valid_domain_based_on_email_content()
     {
         $track = MailTracker::sentEmailModel()->newQuery()->create([
@@ -452,9 +460,7 @@ class MailTrackerTest extends SetUpTest
             ->assertRedirect('https://goodwebsite.com/test.html');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_redirects_to_fallback_for_invalid_domain()
     {
         $track = MailTracker::sentEmailModel()->newQuery()->create([
@@ -472,9 +478,27 @@ class MailTrackerTest extends SetUpTest
             ->assertRedirect('/home');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
+    public function it_redirects_to_fallback_for_missing_parameters()
+    {
+        Config::set('mail-tracker.redirect-missing-links-to', '/home');
+        
+        $track = MailTracker::sentEmailModel()->newQuery()->create([
+            'hash'    => Str::random(32),
+            'content' => 'This is some content with a link to <a href="https://goodwebsite.com">Good website</a>',
+        ]);
+
+        $this->get(URL::route('mailTracker_n', ['l' => 'https://goodwebsite.com']))
+            ->assertRedirect('/home');
+
+        $this->get(URL::route('mailTracker_n', ['h' => $track->hash]))
+            ->assertRedirect('/home');
+
+        $this->get(URL::route('mailTracker_n', []))
+            ->assertRedirect('/home');
+    }
+
+    #[Test]
     public function random_string_in_link_does_not_crash()
     {
         $this->disableExceptionHandling();
@@ -487,9 +511,7 @@ class MailTrackerTest extends SetUpTest
         $this->get($url);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function testLinkComEspacosESanitizadoAntesDeGerarTracking()
     {
         $tracker = new MailTracker();
@@ -501,9 +523,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertStringContainsString(urlencode('https://example.com/path%20with%20spaces'), $result);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function testLinkComUrlInvalidaNaoEReescritoParaTracking()
     {
         $tracker = new MailTracker();
@@ -515,9 +535,37 @@ class MailTrackerTest extends SetUpTest
         $this->assertEquals('<a href="not-a-valid-url">Click</a>', $result);
     }
 
-    /**
-     * @test
-     */
+    public static function linkDataProvider()
+    {
+        return [
+            'Normal HTTP URL' => ['http://goodwebsite.com/test.html'],
+            'Normal HTTPS URL' => ['https://goodwebsite.com/test.html'],
+            'Normal Tel' => ['tel:+123456789'],
+            'Normal Mailto' => ['mailto:test@email.com'],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('linkDataProvider')]
+    public function test_signed_link_redirects_to_valid_url(string $link)
+    {
+        $track = MailTracker::sentEmailModel()->newQuery()->create([
+            'hash'    => Str::random(32),
+            'content' => 'This is some content with a link to <a href="' . $link . '">Good website</a>',
+        ]);
+
+        $this->disableExceptionHandling();
+
+        $url = URL::signedRoute('mailTracker_n', [
+            'l' => $link,
+            'h' => $track->hash,
+        ]);
+
+        $this->get($url)
+            ->assertRedirect($link);
+    }
+
+    #[Test]
     public function it_retrieves_the_message_id_from_laravel_mailer()
     {
         $sent    = MailTracker::sentEmailModel()->newQuery()->create([
@@ -570,9 +618,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_retrieves_the_message_id_from_ses_mail_default()
     {
         Config::set('mail.default', 'ses');
@@ -627,9 +673,7 @@ class MailTrackerTest extends SetUpTest
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_retrieves_the_message_id_from_ses_mail_driver()
     {
         $str = Mockery::mock(Str::class);
@@ -693,9 +737,7 @@ class MailTrackerTest extends SetUpTest
      * SNS Tests
      */
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_confirms_a_subscription()
     {
         $url      = action('\jdavidbakr\MailTracker\SNSController@callback');
@@ -718,9 +760,7 @@ class MailTrackerTest extends SetUpTest
         $response->assertSee('subscription confirmed');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_processes_with_registered_topic()
     {
         $topic = Str::random(32);
@@ -745,9 +785,7 @@ class MailTrackerTest extends SetUpTest
         $response->assertSee('subscription confirmed');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_ignores_invalid_topic()
     {
         $topic = Str::random(32);
@@ -772,9 +810,7 @@ class MailTrackerTest extends SetUpTest
         $response->assertSee('invalid topic ARN');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_processes_a_delivery()
     {
         Config::set('mail-tracker.tracker-queue', 'alt-queue');
@@ -803,9 +839,7 @@ class MailTrackerTest extends SetUpTest
         });
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_processes_a_bounce()
     {
         Config::set('mail-tracker.tracker-queue', 'alt-queue');
@@ -834,9 +868,7 @@ class MailTrackerTest extends SetUpTest
         });
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_processes_a_complaint()
     {
         Config::set('mail-tracker.tracker-queue', 'alt-queue');
@@ -865,9 +897,7 @@ class MailTrackerTest extends SetUpTest
         });
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_ampersands_in_links()
     {
         Event::fake(LinkClickedEvent::class);
@@ -928,9 +958,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertEquals(1, $track->clicks);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_apostrophes_in_links()
     {
         Event::fake(LinkClickedEvent::class);
@@ -987,9 +1015,7 @@ class MailTrackerTest extends SetUpTest
     }
 
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_retrieves_header_data()
     {
         $faker       = Factory::create();
@@ -997,9 +1023,9 @@ class MailTrackerTest extends SetUpTest
         $subject     = $faker->sentence;
         $name        = $faker->firstName . ' ' . $faker->lastName;
         $header_test = Str::random(10);
-        \View::addLocation(__DIR__);
+        View::addLocation(__DIR__);
 
-        \Mail::send('email.test', [], function ($message) use ($email, $subject, $name, $header_test) {
+        Mail::send('email.test', [], function ($message) use ($email, $subject, $name, $header_test) {
             $message->from('from@johndoe.com', 'From Name');
             $message->sender('sender@johndoe.com', 'Sender Name');
 
@@ -1021,9 +1047,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertEquals($header_test, $track->getHeader('X-Header-Test'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_retrieves_long_header_data()
     {
         $faker       = Factory::create();
@@ -1055,9 +1079,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertEquals($header_test, $track->getHeader('X-Header-Test'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_retrieves_multiple_cc_recipients_from_header_data()
     {
         $faker   = Factory::create();
@@ -1106,9 +1128,7 @@ class MailTrackerTest extends SetUpTest
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_secondary_connection()
     {
         // Create an old email to purge
@@ -1136,9 +1156,9 @@ class MailTrackerTest extends SetUpTest
         $email   = $faker->email;
         $subject = $faker->sentence;
         $name    = $faker->firstName . ' ' . $faker->lastName;
-        \View::addLocation(__DIR__);
+        View::addLocation(__DIR__);
 
-        \Mail::send('email.test', [], function ($message) use ($email, $subject, $name) {
+        Mail::send('email.test', [], function ($message) use ($email, $subject, $name) {
             $message->from('from@johndoe.com', 'From Name');
             $message->sender('sender@johndoe.com', 'Sender Name');
 
@@ -1167,9 +1187,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertNull($old_url->fresh());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_can_retrieve_url_clicks_from_eloquent()
     {
         Event::fake();
@@ -1191,9 +1209,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertInstanceOf(MailTracker::$sentEmailUrlClickedModel, $track->urlClicks->first());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_handles_headers_with_colons()
     {
         $headerData = '{"some_id":2,"some_othger_id":"0dd75231-31bb-4e67-8ab7-a83315f75a44","some_field":"A Field Value"}';
@@ -1207,6 +1223,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertEquals($headerData, $retrieval);
     }
 
+    #[Test]
     public function testLogContentInFilesystem()
     {
         $faker   = Factory::create();
@@ -1253,7 +1270,7 @@ class MailTrackerTest extends SetUpTest
         Storage::disk(config('mail-tracker.tracker-filesystem'))->assertExists($filePath);
     }
 
-    /** @test */
+    #[Test]
     public function sent_email_model_can_be_created()
     {
         $sentEmail = MailTracker::sentEmailModel();
@@ -1261,7 +1278,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertInstanceOf(SentEmail::class, $sentEmail);
     }
 
-    /** @test */
+    #[Test]
     public function sent_email_model_can_be_changed()
     {
         MailTracker::useSentEmailModel(SentEmailStub::class);
@@ -1273,7 +1290,7 @@ class MailTrackerTest extends SetUpTest
         MailTracker::useSentEmailModel(SentEmail::class);
     }
 
-    /** @test */
+    #[Test]
     public function sent_email_url_clicked_model_can_be_created()
     {
         $sentEmailUrlClicked = MailTracker::sentEmailUrlClickedModel();
@@ -1281,7 +1298,7 @@ class MailTrackerTest extends SetUpTest
         $this->assertInstanceOf(SentEmailUrlClicked::class, $sentEmailUrlClicked);
     }
 
-    /** @test */
+    #[Test]
     public function sent_email_url_clicked_model_can_be_changed()
     {
         MailTracker::useSentEmailUrlClickedModel(SentEmailUrlClickedStub::class);
@@ -1291,6 +1308,173 @@ class MailTrackerTest extends SetUpTest
         $this->assertInstanceOf(SentEmailUrlClickedStub::class, $sentEmailUrlClicked);
 
         MailTracker::useSentEmailUrlClickedModel(SentEmailUrlClicked::class);
+    }
+
+    /**
+     * @test
+     */
+    public function it_does_not_track_links_with_data_dont_track_attribute()
+    {
+        Event::fake(LinkClickedEvent::class);
+        Config::set('mail-tracker.track-links', true);
+        Config::set('mail-tracker.inject-pixel', true);
+        Config::set('mail.driver', 'array');
+        (new MailServiceProvider(app()))->register();
+
+        $faker   = Factory::create();
+        $email   = $faker->email;
+        $subject = $faker->sentence;
+        $name    = $faker->firstName . ' ' . $faker->lastName;
+        View::addLocation(__DIR__);
+
+        Mail::send('email.testDontTrack', [], function ($message) use ($email, $subject, $name) {
+            $message->from('from@johndoe.com', 'From Name');
+            $message->sender('sender@johndoe.com', 'Sender Name');
+            $message->to($email, $name);
+            $message->subject($subject);
+        });
+
+        $driver = app('mailer')->getSymfonyTransport();
+        $this->assertEquals(1, count($driver->messages()));
+
+        $mes  = $driver->messages()[0];
+        $body = $mes->getOriginalMessage()->getBody()->getBody();
+
+        // Extract tracked-link.com URL
+        preg_match('/<a[^>]*href=[\'"]([^\'"]*tracked-link\.com[^\'"]*)[\'"]/', $body, $trackedMatch);
+        $this->assertNotEmpty($trackedMatch, 'Should find tracked-link.com link');
+        $this->assertStringContainsString('/n?h=', $trackedMatch[1], 'Tracked link should contain tracking route');
+
+        // Extract google.com URL
+        preg_match('/<a[^>]*href=[\'"]([^\'"]*google\.com[^\'"]*)[\'"]/', $body, $googleMatch);
+        $this->assertNotEmpty($googleMatch, 'Should find google.com link');
+        $this->assertStringContainsString('/n?h=', $googleMatch[1], 'Google link should be tracked');
+
+        // Check that untracked links (with data-dont-track) remain unchanged and are NOT tracked
+        preg_match('/<a[^>]*href=[\'"]([^\'"]*untracked-link\.com[^\'"]*)[\'"]/', $body, $untrackedMatch);
+        $this->assertNotEmpty($untrackedMatch, 'Should find untracked-link.com link');
+        $this->assertEquals(
+            'http://www.untracked-link.com',
+            $untrackedMatch[1],
+            'Untracked link should be original URL'
+        );
+        $this->assertStringNotContainsString(
+            '/n?h=',
+            $untrackedMatch[1],
+            'Untracked link should NOT contain tracking route'
+        );
+
+        // Check privacy-link.com
+        preg_match('/<a[^>]*href=[\'"]([^\'"]*privacy-link\.com[^\'"]*)[\'"]/', $body, $privacyMatch);
+        $this->assertNotEmpty($privacyMatch, 'Should find privacy-link.com link');
+        $this->assertEquals('http://www.privacy-link.com', $privacyMatch[1], 'Privacy link should be original URL');
+        $this->assertStringNotContainsString(
+            '/n?h=',
+            $privacyMatch[1],
+            'Privacy link should NOT contain tracking route'
+        );
+
+        // Verify data-dont-track attribute has been removed
+        $this->assertStringNotContainsString(
+            'data-dont-track',
+            $body,
+            'data-dont-track attribute should be removed from final HTML'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function it_removes_data_dont_track_attribute_from_final_html()
+    {
+        Event::fake(LinkClickedEvent::class);
+        Config::set('mail-tracker.track-links', true);
+        Config::set('mail-tracker.inject-pixel', true);
+        Config::set('mail.driver', 'array');
+        (new MailServiceProvider(app()))->register();
+
+        $faker   = Factory::create();
+        $email   = $faker->email;
+        $subject = $faker->sentence;
+        $name    = $faker->firstName . ' ' . $faker->lastName;
+        View::addLocation(__DIR__);
+
+        Mail::send('email.testDontTrack', [], function ($message) use ($email, $subject, $name) {
+            $message->from('from@johndoe.com', 'From Name');
+            $message->to($email, $name);
+            $message->subject($subject);
+        });
+
+        $driver = app('mailer')->getSymfonyTransport();
+        $mes    = $driver->messages()[0];
+        $body   = $mes->getOriginalMessage()->getBody()->getBody();
+
+        // Verify that data-dont-track attribute has been removed from final HTML
+        $this->assertStringNotContainsString(
+            'data-dont-track',
+            $body,
+            'data-dont-track attribute should be removed from final HTML'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function it_handles_mixed_tracked_and_untracked_links()
+    {
+        Event::fake(LinkClickedEvent::class);
+        Config::set('mail-tracker.track-links', true);
+        Config::set('mail-tracker.inject-pixel', true);
+        Config::set('mail.driver', 'array');
+        (new MailServiceProvider(app()))->register();
+
+        $faker   = Factory::create();
+        $email   = $faker->email;
+        $subject = $faker->sentence;
+        $name    = $faker->firstName . ' ' . $faker->lastName;
+        View::addLocation(__DIR__);
+
+        Mail::send('email.testDontTrack', [], function ($message) use ($email, $subject, $name) {
+            $message->from('from@johndoe.com', 'From Name');
+            $message->to($email, $name);
+            $message->subject($subject);
+        });
+
+        $driver = app('mailer')->getSymfonyTransport();
+        $mes    = $driver->messages()[0];
+        $body   = $mes->getOriginalMessage()->getBody()->getBody();
+        $hash   = $mes->getOriginalMessage()->getHeaders()->get('X-Mailer-Hash')->getValue();
+
+        // Count total links in the original template (4 links total: 2 tracked, 2 untracked)
+        preg_match_all('/<a[^>]*href=[\'"]([^\'"]*)/', $body, $allLinks);
+
+        // Verify we have all 4 links
+        $this->assertGreaterThanOrEqual(4, count($allLinks[1]), 'Should have at least 4 links');
+
+        // Count how many links contain the tracking route
+        $trackedCount = 0;
+        $untrackedCount = 0;
+
+        foreach ($allLinks[0] as $link) {
+            if (strpos($link, '/n?h=') !== false) {
+                $trackedCount++;
+            } else {
+                // Check if it's one of the original untracked URLs
+                if (strpos($link, 'untracked-link.com') !== false || strpos($link, 'privacy-link.com') !== false) {
+                    $untrackedCount++;
+                }
+            }
+        }
+
+        // We should have exactly 2 tracked links and 2 untracked links
+        $this->assertEquals(2, $trackedCount, 'Should have exactly 2 tracked links');
+        $this->assertEquals(2, $untrackedCount, 'Should have exactly 2 untracked links');
+
+        // Verify specific URLs
+        $this->assertStringContainsString('tracked-link.com', $body);
+        $this->assertStringContainsString('untracked-link.com', $body);
+        $this->assertStringContainsString('google.com', $body);
+        $this->assertStringContainsString('privacy-link.com', $body);
     }
 }
 

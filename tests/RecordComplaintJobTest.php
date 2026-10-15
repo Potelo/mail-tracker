@@ -8,12 +8,11 @@ use jdavidbakr\MailTracker\MailTracker;
 use jdavidbakr\MailTracker\RecordBounceJob;
 use jdavidbakr\MailTracker\RecordComplaintJob;
 use jdavidbakr\MailTracker\Events\ComplaintMessageEvent;
+use PHPUnit\Framework\Attributes\Test;
 
-class RecordComplaintJobTest extends SetUpTest
+class RecordComplaintJobTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_marks_the_email_as_unsuccessful()
     {
         Event::fake();

@@ -5,6 +5,7 @@ namespace jdavidbakr\MailTracker\Middleware;
 use Closure;
 use Illuminate\Routing\Middleware\ValidateSignature as Middleware;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Uri;
 use jdavidbakr\MailTracker\Events\ValidLinkEvent;
 use jdavidbakr\MailTracker\Exceptions\BadUrlLink;
 use jdavidbakr\MailTracker\MailTracker;
@@ -17,14 +18,22 @@ class ValidateSignature extends Middleware
         $hash = $request->query('h');
         $url  = $request->query('l');
 
-        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+        if (!$hash || !$url) {
+            return redirect(config('mail-tracker.redirect-missing-links-to') ?: '/');
+        }
+
+        $uri = Uri::of($url);
+
+        $validUriSchemes = ['http', 'https', 'tel', 'mailto'];
+
+        if (!in_array($uri->scheme(), $validUriSchemes)) {
             throw new BadUrlLink('Mail hash: ' . $hash . ', URL: ' . $url);
         }
 
         [$relative, $ignore] = $this->parseArguments($args);
 
         // If the signature is valid then we know that it has not been tampered with so continue
-        if ($request->hasValidSignatureWhileIgnoring($ignore, ! $relative)) {
+        if ($request->hasValidSignatureWhileIgnoring($ignore, !$relative)) {
             return $next($request);
         }
 

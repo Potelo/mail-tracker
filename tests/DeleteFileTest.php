@@ -4,11 +4,12 @@ namespace jdavidbakr\MailTracker\Tests;
 
 use Illuminate\Support\Facades\Storage;
 use jdavidbakr\MailTracker\Model\SentEmail;
+use PHPUnit\Framework\Attributes\Test;
 
-class DeleteFileTest extends SetUpTest
+class DeleteFileTest extends TestCase
 {
 
-    /** @test */
+    #[Test]
     public function it_deletes_file_after_model_is_deleted()
     {
         $disk = 'testing';

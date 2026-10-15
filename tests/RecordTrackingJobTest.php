@@ -12,19 +12,19 @@ use jdavidbakr\MailTracker\RecordComplaintJob;
 use jdavidbakr\MailTracker\RecordLinkClickJob;
 use jdavidbakr\MailTracker\Events\ViewEmailEvent;
 use jdavidbakr\MailTracker\Events\LinkClickedEvent;
+use PHPUnit\Framework\Attributes\Test;
 
-class RecordTrackingJobTest extends SetUpTest
+class RecordTrackingJobTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_records_views()
     {
         Event::fake();
         $track = MailTracker::sentEmailModel()->newQuery()->create([
                 'hash' => Str::random(32),
             ]);
-        $job = new RecordTrackingJob($track, '127.0.0.1');
+        $openedAt = now()->subMinute()->startOfSecond();
+        $job = new RecordTrackingJob($track, '127.0.0.1', $openedAt);
 
         $job->handle();
 
@@ -35,6 +35,7 @@ class RecordTrackingJobTest extends SetUpTest
         $this->assertDatabaseHas('sent_emails', [
                 'id' => $track->id,
                 'opens' => 1,
+                'opened_at' => $openedAt->format('Y-m-d H:i:s'),
             ]);
     }
 }

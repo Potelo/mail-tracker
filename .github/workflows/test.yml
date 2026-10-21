@@ -14,61 +14,31 @@ jobs:
             matrix:
                 php: [ '8.2', '8.3', '8.4', '8.5' ]
                 laravel: [ '10.*', '11.*', '12.*', '13.*' ]
-                phpunit: [ '10.*', '11.*', '12.*' ]
-                operating-system:
-                    - ubuntu-latest
-
+                include:
+                    - { laravel: '10.*', testbench: '8.*', phpunit: '10.*' }
+                    - { laravel: '11.*', testbench: '9.*', phpunit: '10.*' }
+                    - { laravel: '12.*', testbench: '10.*', phpunit: '11.*' }
+                    - { laravel: '13.*', testbench: '11.*', phpunit: '11.*' }
                 exclude:
-                    # PHP 8.2 does not support Laravel 13
-                    -   php: '8.2'
-                        laravel: '13.*'
-
-                    # PHP 8.4 does not support Laravel 10
-                    -   php: '8.5'
-                        laravel: '10.*'
-
-                    # PHP 8.5 does not support Laravel 11 or Laravel 10
-                    -   php: '8.5'
-                        laravel: '11.*'
-                    -   php: '8.5'
-                        laravel: '10.*'
-
-                    # Laravel 10 does not support PHPUnit 10 or PHPUnit 12
-                    -   laravel: '10.*'
-                        phpunit: '11.*'
-                    -   laravel: '10.*'
-                        phpunit: '12.*'
-
-                    # Laravel 11 does not support PHPUnit 10 or PHPUnit 12
-                    -   laravel: '11.*'
-                        phpunit: '11.*'
-                    -   laravel: '11.*'
-                        phpunit: '12.*'
-
-                    # Laravel 12 does not support PHPUnit 10 or PHPUnit 12
-                    -   laravel: '12.*'
-                        phpunit: '10.*'
-                    -   laravel: '12.*'
-                        phpunit: '12.*'
-
-                    # Laravel 13 does not support PHPUnit 10 or PHPUnit 11
-                    -   laravel: '13.*'
-                        phpunit: '10.*'
-                    -   laravel: '13.*'
-                        phpunit: '11.*'
+                    - { php: '8.2', laravel: '13.*' }
+                    - { php: '8.5', laravel: '10.*' }
+                    - { php: '8.5', laravel: '11.*' }
         name: php ${{ matrix.php }} using Laravel ${{ matrix.laravel }} and PHPUnit ${{ matrix.phpunit }}
-        runs-on: ${{ matrix.operating-system }}
+        runs-on: ubuntu-latest
         steps:
             -   name: Checkout
                 uses: actions/checkout@v6
             -   name: Setup PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: ${{ matrix.php-version }}
+                    php-version: ${{ matrix.php }}
                     coverage: none
             -   name: Install composer dependencies
                 env:
                     COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
-                run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+                run: |
+                    composer require --dev "orchestra/testbench:${{ matrix.testbench }}" "phpunit/phpunit:${{ matrix.phpunit }}" --no-update
+                    composer require "illuminate/support:${{ matrix.laravel }}" --no-update
+                    composer update --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
             -   name: Run tests
                 run: vendor/bin/phpunit --configuration phpunit.xml --no-coverage

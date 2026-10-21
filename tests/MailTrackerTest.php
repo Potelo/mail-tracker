@@ -537,6 +537,30 @@ class MailTrackerTest extends TestCase
         ];
     }
 
+    public static function invalidSchemeDataProvider()
+    {
+        return [
+            ['javascript:alert(1)'],
+            ['data:text/html,test'],
+            ['ftp://example.com/file'],
+            ['//example.com/path'],
+            ['/relative/path'],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('invalidSchemeDataProvider')]
+    public function signed_links_reject_disallowed_schemes(string $link)
+    {
+        $this->disableExceptionHandling();
+        $this->expectException(BadUrlLink::class);
+
+        $this->get(URL::signedRoute('mailTracker_n', [
+            'l' => $link,
+            'h' => 'the-mail-hash',
+        ]));
+    }
+
     #[Test]
     #[DataProvider('linkDataProvider')]
     public function test_signed_link_redirects_to_valid_url(string $link)

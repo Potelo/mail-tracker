@@ -3,9 +3,9 @@
 namespace jdavidbakr\MailTracker\Middleware;
 
 use Closure;
+use GuzzleHttp\Psr7\Uri;
 use Illuminate\Routing\Middleware\ValidateSignature as Middleware;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Uri;
 use jdavidbakr\MailTracker\Events\ValidLinkEvent;
 use jdavidbakr\MailTracker\Exceptions\BadUrlLink;
 use jdavidbakr\MailTracker\MailTracker;
@@ -22,11 +22,11 @@ class ValidateSignature extends Middleware
             return redirect(config('mail-tracker.redirect-missing-links-to') ?: '/');
         }
 
-        $uri = Uri::of($url);
+        $uri = new Uri($url);
 
         $validUriSchemes = ['http', 'https', 'tel', 'mailto'];
 
-        if (!in_array($uri->scheme(), $validUriSchemes)) {
+        if (!in_array($uri->getScheme(), $validUriSchemes)) {
             throw new BadUrlLink('Mail hash: ' . $hash . ', URL: ' . $url);
         }
 
